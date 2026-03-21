@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Star, Globe, ExternalLink, Wine, Award, Tag } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, MapPin, Star, Globe, ExternalLink, Wine, Award, Tag, Pencil, ShoppingCart } from "lucide-react";
 import { WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS, PalateLevel } from "@/lib/types";
 import { getWines } from "@/lib/store";
 import { getDefaultPalate } from "@/lib/wine-defaults";
@@ -38,13 +39,22 @@ export default function WineDetailPage() {
   return (
     <div className="px-4 pt-6 pb-4">
       {/* Header */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1 text-sm text-gray-500 mb-4 hover:text-gray-700"
-      >
-        <ArrowLeft size={16} />
-        戻る
-      </button>
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <ArrowLeft size={16} />
+          戻る
+        </button>
+        <Link
+          href={`/wines/${wine.id}/edit`}
+          className="flex items-center gap-1 text-sm text-[#722f37] hover:text-[#5a252c] transition-colors"
+        >
+          <Pencil size={16} />
+          編集
+        </Link>
+      </div>
 
       {/* Wine Header */}
       <div className="flex items-start gap-3 mb-6">
@@ -305,6 +315,41 @@ export default function WineDetailPage() {
             </p>
           </div>
         )}
+
+        {/* Purchase Links */}
+        {(() => {
+          const query = encodeURIComponent(
+            [wine.producer, wine.name, wine.vintage].filter(Boolean).join(" ")
+          );
+          const shops = [
+            { name: "Enoteca", url: `https://www.enoteca.co.jp/search?keyword=${query}` },
+            { name: "Rakuten", url: `https://search.rakuten.co.jp/search/mall/${query}/?l-id=s_search&l2-id=shop_header_search` },
+            { name: "Amazon.co.jp", url: `https://www.amazon.co.jp/s?k=${query}` },
+            { name: "Vivino", url: `https://www.vivino.com/search/wines?q=${query}` },
+          ];
+          return (
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <h2 className="font-medium text-gray-800 mb-2 flex items-center gap-1.5">
+                <ShoppingCart size={16} className="text-[#722f37]" />
+                購入する
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                {shops.map((shop) => (
+                  <a
+                    key={shop.name}
+                    href={shop.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-[#722f37] bg-[#722f37]/5 rounded-lg hover:bg-[#722f37]/10 transition-colors"
+                  >
+                    {shop.name}
+                    <ExternalLink size={10} />
+                  </a>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Date */}
         <div className="text-center text-xs text-gray-400 mt-4">

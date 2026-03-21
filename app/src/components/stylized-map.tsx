@@ -16,6 +16,18 @@ interface WorldRegion {
   countries: string[]; // country codes
 }
 
+// Representative Unsplash photos for each world wine region
+const WORLD_REGION_IMAGES: Record<string, string> = {
+  "western-europe": "https://images.unsplash.com/photo-1566903451935-7f4509b81580?w=80&h=80&fit=crop",
+  "eastern-europe": "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=80&h=80&fit=crop",
+  "british-isles": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=80&h=80&fit=crop",
+  "north-america": "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=80&h=80&fit=crop",
+  "south-america": "https://images.unsplash.com/photo-1543418219-44e30b057fea?w=80&h=80&fit=crop",
+  "oceania": "https://images.unsplash.com/photo-1474722883778-792e7990302f?w=80&h=80&fit=crop",
+  "asia": "https://images.unsplash.com/photo-1528164344705-47542687000d?w=80&h=80&fit=crop",
+  "middle-east-africa": "https://images.unsplash.com/photo-1504279577054-acfeccf8fc52?w=80&h=80&fit=crop",
+};
+
 const WORLD_REGIONS: WorldRegion[] = [
   {
     id: "western-europe",
@@ -266,7 +278,12 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
         </button>
 
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">{selectedWorldRegion.icon}</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={WORLD_REGION_IMAGES[selectedWorldRegion.id]}
+            alt={selectedWorldRegion.nameEn}
+            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+          />
           <h2 className="text-lg font-bold text-gray-900">
             {selectedWorldRegion.name}
           </h2>
@@ -384,7 +401,14 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{wr.icon}</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={WORLD_REGION_IMAGES[wr.id]}
+                    alt={wr.nameEn}
+                    className={`w-10 h-10 rounded-full object-cover flex-shrink-0 ${
+                      hasExplored ? "" : "opacity-40 grayscale"
+                    }`}
+                  />
                   <div>
                     <div
                       className={`font-medium ${

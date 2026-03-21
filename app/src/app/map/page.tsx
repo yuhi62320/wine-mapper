@@ -18,7 +18,7 @@ export default function MapPage() {
     null
   );
   const [wines, setWines] = useState<WineLog[]>([]);
-  const [mapMode, setMapMode] = useState<MapMode>("real");
+  const [mapMode, setMapMode] = useState<MapMode>("stylized");
 
   useEffect(() => {
     const allWines = getWines();
