@@ -112,8 +112,7 @@ export default function NewWinePage() {
   const [visionResult, setVisionResult] = useState<WineVisionResult | null>(null);
 
   // Section collapse
-  const [showAroma, setShowAroma] = useState(false);
-  const [showPalate, setShowPalate] = useState(false);
+  const [showAromaPicker, setShowAromaPicker] = useState(false);
 
   // Grape suggestions
   const [showGrapeSuggestions, setShowGrapeSuggestions] = useState(false);
@@ -121,6 +120,10 @@ export default function NewWinePage() {
 
   // Text search (when no image)
   const [textSearching, setTextSearching] = useState(false);
+
+  // Region guide
+  const [regionGuide, setRegionGuide] = useState<Record<string, string> | null>(null);
+  const [loadingGuide, setLoadingGuide] = useState(false);
 
   // Grape base data for overlay
   const [grapeBaseAromas, setGrapeBaseAromas] = useState<string[]>([]);
@@ -218,12 +221,27 @@ export default function NewWinePage() {
     }
   }
 
-  // Initialize aroma/palate when sections are opened
+  // Initialize aroma/palate defaults once grapes or vision result change
   useEffect(() => {
-    if ((showAroma || showPalate) && !aromasInitialized) {
+    if (!aromasInitialized && (normalizedGrapes.length > 0 || visionResult)) {
       applyGrapeDefaults();
     }
-  }, [showAroma, showPalate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [normalizedGrapes.length, visionResult]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch region guide when region changes
+  useEffect(() => {
+    if (!country || !region) { setRegionGuide(null); return; }
+    setLoadingGuide(true);
+    fetch("/api/region-guide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country, region, subRegion, village, grapeVarieties: normalizedGrapes }),
+    })
+      .then((r) => r.json())
+      .then((data) => { if (!data.error) setRegionGuide(data); })
+      .catch(() => {})
+      .finally(() => setLoadingGuide(false));
+  }, [country, region]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // === Scan label with Claude Vision ===
   async function handleScan(e: React.ChangeEvent<HTMLInputElement>) {
@@ -839,152 +857,174 @@ export default function NewWinePage() {
         </div>
       </div>
 
-      {/* === AROMA SECTION (collapsible) === */}
+      {/* === AROMA SECTION === */}
       <div className="mb-4">
-        <button onClick={() => setShowAroma(!showAroma)}
-          className="w-full flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-          <span className="font-medium text-gray-800">
-            香り（アロマ）
-            {selectedAromas.length > 0 && (
-              <span className="ml-2 text-xs text-[#722f37]">{selectedAromas.length}個選択</span>
-            )}
-          </span>
-          {showAroma ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-gray-700">香り（アロマ）</span>
+          <button onClick={resetAromaDefaults}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#722f37]">
+            <RotateCcw size={12} /> リセット
+          </button>
+        </div>
+
+        {/* Always-visible selected aromas */}
+        {selectedAromas.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {selectedAromas.map((a) => (
+              <button key={a} onClick={() => toggleAroma(a)}
+                className="px-2.5 py-1 text-xs rounded-full bg-[#722f37] text-white">
+                {a} ✕
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Toggle aroma picker */}
+        <button onClick={() => setShowAromaPicker(!showAromaPicker)}
+          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-gray-200 text-xs text-gray-500 hover:bg-gray-50">
+          {showAromaPicker ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {showAromaPicker ? "アロマホイールを閉じる" : "アロマホイールから追加"}
         </button>
 
-        {showAroma && (
+        {showAromaPicker && (
           <div className="mt-2 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500">
-                {visionResult ? "AI分析" : "品種"}から推定済み
-              </p>
-              <button onClick={resetAromaDefaults}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#722f37]">
-                <RotateCcw size={12} /> リセット
-              </button>
-            </div>
-
-            {selectedAromas.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {selectedAromas.map((a) => (
-                  <button key={a} onClick={() => toggleAroma(a)}
-                    className="px-2.5 py-1 text-xs rounded-full bg-[#722f37] text-white">
-                    {a} ✕
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {AROMA_DATA.map((cat) => (
-                <div key={cat.name.en} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                  <button onClick={() => setExpandedCategory(expandedCategory === cat.name.en ? null : cat.name.en)}
-                    className="w-full flex items-center justify-between p-3 text-left">
-                    <span className="font-medium text-gray-800">
-                      {cat.name.ja} <span className="text-xs text-gray-400">{cat.name.en}</span>
-                    </span>
-                    {expandedCategory === cat.name.en ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-                  </button>
-                  {expandedCategory === cat.name.en && (
-                    <div className="px-3 pb-3 space-y-3">
-                      {cat.subcategories.map((sub) => (
-                        <div key={sub.name.en}>
-                          <div className="text-xs font-medium text-gray-500 mb-1.5">{sub.name.ja}</div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {sub.descriptors.map((d) => {
-                              const isSelected = selectedAromas.includes(d.ja);
-                              const isGrapeBase = grapeBaseAromas.includes(d.ja);
-                              return (
-                                <button key={d.en} onClick={() => toggleAroma(d.ja)}
-                                  className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
-                                    isSelected ? "bg-[#722f37] text-white border-[#722f37]"
-                                      : isGrapeBase ? "bg-[#d4a574]/10 text-[#d4a574] border-[#d4a574]/40"
-                                        : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#722f37]/50"
-                                  }`}>
-                                  {d.ja}
-                                </button>
-                              );
-                            })}
-                          </div>
+            {AROMA_DATA.map((cat) => (
+              <div key={cat.name.en} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <button onClick={() => setExpandedCategory(expandedCategory === cat.name.en ? null : cat.name.en)}
+                  className="w-full flex items-center justify-between p-3 text-left">
+                  <span className="font-medium text-gray-800 text-sm">
+                    {cat.name.ja} <span className="text-xs text-gray-400">{cat.name.en}</span>
+                  </span>
+                  {expandedCategory === cat.name.en ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                </button>
+                {expandedCategory === cat.name.en && (
+                  <div className="px-3 pb-3 space-y-3">
+                    {cat.subcategories.map((sub) => (
+                      <div key={sub.name.en}>
+                        <div className="text-xs font-medium text-gray-500 mb-1.5">{sub.name.ja}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {sub.descriptors.map((d) => {
+                            const isSelected = selectedAromas.includes(d.ja);
+                            const isGrapeBase = grapeBaseAromas.includes(d.ja);
+                            return (
+                              <button key={d.en} onClick={() => toggleAroma(d.ja)}
+                                className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                                  isSelected ? "bg-[#722f37] text-white border-[#722f37]"
+                                    : isGrapeBase ? "bg-[#d4a574]/10 text-[#d4a574] border-[#d4a574]/40"
+                                      : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#722f37]/50"
+                                }`}>
+                                {d.ja}
+                              </button>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* === PALATE SECTION (collapsible) === */}
-      <div className="mb-6">
-        <button onClick={() => setShowPalate(!showPalate)}
-          className="w-full flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-          <span className="font-medium text-gray-800">味わい（パレット）</span>
-          {showPalate ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-        </button>
-
-        {showPalate && (
-          <div className="mt-2">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-gray-500">品種から推定済み。調整してください</p>
-              <button onClick={resetPalateDefaults}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#722f37]">
-                <RotateCcw size={12} /> リセット
-              </button>
-            </div>
-
-            <div className="flex justify-center mb-2">
-              <RadarChart data={radarData} baseData={radarBaseData} size={220} interactive={true}
-                onChange={(index, value) => palateSetters[index](value)} />
-            </div>
-            {radarBaseData && (
-              <div className="flex items-center justify-center gap-4 mb-3 text-[10px] text-gray-400">
-                <span className="flex items-center gap-1">
-                  <span className="inline-block w-4 h-0.5 bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
-                  品種の特徴
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
-                  このワイン
-                </span>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {Object.entries(PALATE_LABELS).map(([key, meta]) => {
-                if (key === "tannin" && !showTannin) return null;
-                const palateState: Record<string, { value: PalateLevel; set: (v: PalateLevel) => void }> = {
-                  sweetness: { value: sweetness, set: setSweetness },
-                  acidity: { value: acidity, set: setAcidity },
-                  tannin: { value: tannin, set: setTannin },
-                  body: { value: body, set: setBody },
-                  finish: { value: finish, set: setFinish },
-                };
-                const state = palateState[key];
-                return (
-                  <div key={key}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium text-gray-700">{meta.label}</span>
-                      <span className="text-[10px] text-[#722f37] font-medium">{meta.levels[state.value - 1]}</span>
-                    </div>
-                    <input type="range" min={1} max={5} value={state.value}
-                      onChange={(e) => state.set(parseInt(e.target.value) as PalateLevel)}
-                      className="w-full accent-[#722f37]" />
+                      </div>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-4">
-              <label className="text-sm font-medium text-gray-700 block mb-1">テイスティングノート</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-                placeholder="自由にメモを記入..." className={`${inputCls} h-20 resize-none`} />
-            </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
+
+      {/* === PALATE SECTION (always visible) === */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-gray-700">味わい</span>
+          <button onClick={resetPalateDefaults}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#722f37]">
+            <RotateCcw size={12} /> リセット
+          </button>
+        </div>
+
+        <div className="flex justify-center mb-2">
+          <RadarChart data={radarData} baseData={radarBaseData} size={200} interactive={true}
+            onChange={(index, value) => palateSetters[index](value)} />
+        </div>
+        {radarBaseData && (
+          <div className="flex items-center justify-center gap-4 mb-2 text-[10px] text-gray-400">
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-4 h-0.5 bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
+              品種の特徴
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
+              このワイン
+            </span>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {Object.entries(PALATE_LABELS).map(([key, meta]) => {
+            if (key === "tannin" && !showTannin) return null;
+            const palateState: Record<string, { value: PalateLevel; set: (v: PalateLevel) => void }> = {
+              sweetness: { value: sweetness, set: setSweetness },
+              acidity: { value: acidity, set: setAcidity },
+              tannin: { value: tannin, set: setTannin },
+              body: { value: body, set: setBody },
+              finish: { value: finish, set: setFinish },
+            };
+            const state = palateState[key];
+            return (
+              <div key={key}>
+                <div className="flex justify-between items-center mb-0.5">
+                  <span className="text-xs font-medium text-gray-700">{meta.label}</span>
+                  <span className="text-[10px] text-[#722f37] font-medium">{meta.levels[state.value - 1]}</span>
+                </div>
+                <input type="range" min={1} max={5} value={state.value}
+                  onChange={(e) => state.set(parseInt(e.target.value) as PalateLevel)}
+                  className="w-full accent-[#722f37]" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* === TASTING NOTES === */}
+      <div className="mb-4">
+        <label className="text-sm font-medium text-gray-700 block mb-1">テイスティングノート</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+          placeholder="自由にメモを記入..." className={`${inputCls} h-20 resize-none`} />
+      </div>
+
+      {/* === REGION GUIDE === */}
+      {(regionGuide || loadingGuide) && (
+        <div className="mb-6 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
+          <h3 className="font-medium text-amber-900 mb-2 flex items-center gap-1.5 text-sm">
+            📍 {regionGuide?.regionName || region}の産地ガイド
+          </h3>
+          {loadingGuide ? (
+            <div className="flex items-center gap-2 text-xs text-amber-600">
+              <Loader2 size={14} className="animate-spin" /> 産地情報を取得中...
+            </div>
+          ) : regionGuide && (
+            <div className="space-y-2.5 text-xs text-amber-800">
+              {regionGuide.terroir && (
+                <div><span className="font-medium text-amber-900">🌍 テロワール:</span> {regionGuide.terroir}</div>
+              )}
+              {regionGuide.keyStyles && (
+                <div><span className="font-medium text-amber-900">🍷 主要スタイル:</span> {regionGuide.keyStyles}</div>
+              )}
+              {regionGuide.history && (
+                <div><span className="font-medium text-amber-900">📜 歴史:</span> {regionGuide.history}</div>
+              )}
+              {regionGuide.foodPairing && (
+                <div><span className="font-medium text-amber-900">🍽️ ペアリング:</span> {regionGuide.foodPairing}</div>
+              )}
+              {regionGuide.visitTips && (
+                <div><span className="font-medium text-amber-900">✈️ 旅行:</span> {regionGuide.visitTips}</div>
+              )}
+              {regionGuide.sommNotes && (
+                <div><span className="font-medium text-amber-900">📝 ソムリエ試験:</span> {regionGuide.sommNotes}</div>
+              )}
+              {regionGuide.funFact && (
+                <div><span className="font-medium text-amber-900">💡 豆知識:</span> {regionGuide.funFact}</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* === SUBMIT === */}
       <button onClick={handleSubmit} disabled={!canSubmit}
