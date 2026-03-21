@@ -39,23 +39,35 @@ export interface PalateRating {
 
 export interface WineLog {
   id: string;
-  name: string;
-  vintage: number | null;
+
+  // === Mandatory label fields (法律義務) ===
+  producer: string;             // 生産者名 (Domaine, Château, Winery)
+  country: string;              // 原産国
+  region: string;               // 原産地 (産地名 / Appellation)
+  subRegion: string;            // サブ地域
+  appellation: string;          // 格付け (AOC, DOCG, Grand Cru, etc.)
+  vintage: number | null;       // 収穫年 (ヴィンテージ)
+  classification: string;       // 品質分類 (Premier Cru, Crianza, Reserva, etc.)
+  abv: number | null;           // アルコール度数
+  volume: number | null;        // 内容量 (ml)
+  bottler: string;              // 瓶詰め元 ("Mis en bouteille au château", etc.)
+
+  // === Optional label fields (任意項目) ===
+  name: string;                 // ワイン名 / キュヴェ名
+  grapeVarieties: string[];     // ブドウ品種
+  aging: string;                // 熟成表記 (Reserva, Barrique, Elevé en fûts de chêne, etc.)
+  tasteType: string;            // 味わいタイプ (Sec, Brut, Doux, etc.)
+  certifications: string[];     // 認証・受賞 (Bio, Organic, medal, etc.)
+  producerUrl: string;          // 生産者HP
+
+  // === User input ===
   type: WineType;
-  grapeVarieties: string[];
-  producer: string;
-  producerUrl: string;
-  country: string;
-  region: string;
-  subRegion: string;
-  appellation: string;
-  abv: number | null;
   price: number | null;
   aromas: string[];
   palate: PalateRating;
-  rating: number; // 1-5
+  rating: number;               // 1-5
   notes: string;
-  date: string; // ISO date
+  date: string;                 // ISO date
   createdAt: string;
 }
 
@@ -85,6 +97,21 @@ export interface Badge {
   category: "region" | "grape" | "style" | "milestone" | "streak";
   icon: string;
   condition: (profile: UserProfile, wines: WineLog[]) => boolean;
+}
+
+export interface SubRegion {
+  name: string;
+  nameJa: string;
+  lat: number;
+  lng: number;
+}
+
+export interface WineRegion {
+  name: string;
+  nameJa: string;
+  lat: number;
+  lng: number;
+  subRegions: SubRegion[];
 }
 
 export interface AromaDescriptor {

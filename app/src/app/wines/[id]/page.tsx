@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Star, Globe, ExternalLink } from "lucide-react";
-import { WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS } from "@/lib/types";
+import { ArrowLeft, MapPin, Star, Globe, ExternalLink, Wine, Award, Tag } from "lucide-react";
+import { WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS, PalateLevel } from "@/lib/types";
 import { getWines } from "@/lib/store";
+import { getDefaultPalate } from "@/lib/wine-defaults";
+import RadarChart from "@/components/radar-chart";
 
 const PALATE_NAMES: Record<string, string> = {
   sweetness: "甘さ",
@@ -51,7 +53,12 @@ export default function WineDetailPage() {
           style={{ backgroundColor: WINE_TYPE_COLORS[wine.type] }}
         />
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{wine.name}</h1>
+          <h1 className="text-xl font-bold text-gray-900">
+            {wine.producer || wine.name}
+          </h1>
+          {wine.name && wine.producer && wine.name !== wine.producer && (
+            <p className="text-sm text-gray-600">{wine.name}</p>
+          )}
           <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
             <span className="px-2 py-0.5 rounded bg-gray-100 text-xs">
               {WINE_TYPE_LABELS[wine.type].ja}
@@ -78,13 +85,19 @@ export default function WineDetailPage() {
 
       {/* Info Cards */}
       <div className="space-y-4">
-        {/* Origin */}
+        {/* Origin & Producer */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <h2 className="font-medium text-gray-800 mb-2 flex items-center gap-1.5">
             <MapPin size={16} className="text-[#722f37]" />
             産地・生産者
           </h2>
           <div className="space-y-1.5 text-sm">
+            {wine.producer && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">生産者</span>
+                <span className="text-gray-800">{wine.producer}</span>
+              </div>
+            )}
             {wine.country && (
               <div className="flex justify-between">
                 <span className="text-gray-500">国</span>
@@ -97,10 +110,22 @@ export default function WineDetailPage() {
                 <span className="text-gray-800">{wine.region}</span>
               </div>
             )}
-            {wine.producer && (
+            {wine.subRegion && (
               <div className="flex justify-between">
-                <span className="text-gray-500">生産者</span>
-                <span className="text-gray-800">{wine.producer}</span>
+                <span className="text-gray-500">サブ地域</span>
+                <span className="text-gray-800">{wine.subRegion}</span>
+              </div>
+            )}
+            {wine.appellation && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">格付け</span>
+                <span className="text-gray-800">{wine.appellation}</span>
+              </div>
+            )}
+            {wine.classification && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">品質分類</span>
+                <span className="text-gray-800">{wine.classification}</span>
               </div>
             )}
             {wine.producerUrl && (
@@ -118,21 +143,57 @@ export default function WineDetailPage() {
                 </a>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Wine Details */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <h2 className="font-medium text-gray-800 mb-2 flex items-center gap-1.5">
+            <Wine size={16} className="text-[#722f37]" />
+            ワイン詳細
+          </h2>
+          <div className="space-y-1.5 text-sm">
             {wine.grapeVarieties.length > 0 && (
               <div className="flex justify-between">
                 <span className="text-gray-500">品種</span>
-                <span className="text-gray-800">
+                <span className="text-gray-800 text-right max-w-[60%]">
                   {wine.grapeVarieties.join(", ")}
                 </span>
               </div>
             )}
-            {wine.abv && (
+            {wine.abv != null && (
               <div className="flex justify-between">
                 <span className="text-gray-500">ABV</span>
                 <span className="text-gray-800">{wine.abv}%</span>
               </div>
             )}
-            {wine.price && (
+            {wine.volume != null && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">容量</span>
+                <span className="text-gray-800">{wine.volume}ml</span>
+              </div>
+            )}
+            {wine.aging && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">熟成</span>
+                <span className="text-gray-800">{wine.aging}</span>
+              </div>
+            )}
+            {wine.tasteType && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">味わいタイプ</span>
+                <span className="text-gray-800">{wine.tasteType}</span>
+              </div>
+            )}
+            {wine.bottler && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">瓶詰め元</span>
+                <span className="text-gray-800 text-right max-w-[60%]">
+                  {wine.bottler}
+                </span>
+              </div>
+            )}
+            {wine.price != null && (
               <div className="flex justify-between">
                 <span className="text-gray-500">価格</span>
                 <span className="text-gray-800">¥{wine.price.toLocaleString()}</span>
@@ -140,6 +201,26 @@ export default function WineDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Certifications */}
+        {wine.certifications && wine.certifications.length > 0 && (
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <h2 className="font-medium text-gray-800 mb-2 flex items-center gap-1.5">
+              <Award size={16} className="text-[#722f37]" />
+              認証・受賞
+            </h2>
+            <div className="flex flex-wrap gap-1.5">
+              {wine.certifications.map((c) => (
+                <span
+                  key={c}
+                  className="px-2.5 py-1 text-xs bg-amber-50 text-amber-700 rounded-full border border-amber-200"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Aromas */}
         {wine.aromas.length > 0 && (
@@ -158,31 +239,56 @@ export default function WineDetailPage() {
           </div>
         )}
 
-        {/* Palate */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <h2 className="font-medium text-gray-800 mb-3">味わい</h2>
-          <div className="space-y-2.5">
-            {Object.entries(wine.palate).map(([key, val]) => {
-              if (val === null) return null;
-              return (
-                <div key={key}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500">
-                      {PALATE_NAMES[key] || key}
-                    </span>
-                    <span className="text-gray-700">{val}/5</span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-1.5">
-                    <div
-                      className="bg-[#722f37] h-1.5 rounded-full"
-                      style={{ width: `${((val as number) / 5) * 100}%` }}
-                    />
-                  </div>
+        {/* Palate - Radar Chart with grape base overlay */}
+        {(() => {
+          const isRed = wine.type === "red";
+          const showTannin = wine.palate.tannin !== null;
+          const wineData = [
+            { label: "甘さ", value: wine.palate.sweetness },
+            { label: "酸味", value: wine.palate.acidity },
+            ...(showTannin
+              ? [{ label: "タンニン", value: wine.palate.tannin as PalateLevel }]
+              : []),
+            { label: "ボディ", value: wine.palate.body },
+            { label: "余韻", value: wine.palate.finish },
+          ];
+
+          // Compute grape base overlay if grapes are available
+          let baseData: { label: string; value: PalateLevel }[] | undefined;
+          if (wine.grapeVarieties.length > 0) {
+            const grapePalate = getDefaultPalate(wine.grapeVarieties, isRed);
+            baseData = [
+              { label: "甘さ", value: grapePalate.sweetness },
+              { label: "酸味", value: grapePalate.acidity },
+              ...(showTannin && grapePalate.tannin !== null
+                ? [{ label: "タンニン", value: grapePalate.tannin }]
+                : []),
+              { label: "ボディ", value: grapePalate.body },
+              { label: "余韻", value: grapePalate.finish },
+            ];
+          }
+
+          return (
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <h2 className="font-medium text-gray-800 mb-3">味わい</h2>
+              <div className="flex justify-center">
+                <RadarChart data={wineData} baseData={baseData} size={200} />
+              </div>
+              {baseData && (
+                <div className="flex items-center justify-center gap-4 mt-2 text-[10px] text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-4 h-0.5 bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
+                    品種の特徴
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
+                    あなたの評価
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Notes */}
         {wine.notes && (
