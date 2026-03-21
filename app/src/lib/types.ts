@@ -45,6 +45,7 @@ export interface WineLog {
   country: string;              // 原産国
   region: string;               // 原産地 (産地名 / Appellation)
   subRegion: string;            // サブ地域
+  village: string;              // 村名 / コミューン (Pauillac, Chambolle-Musigny, etc.)
   appellation: string;          // 格付け (AOC, DOCG, Grand Cru, etc.)
   vintage: number | null;       // 収穫年 (ヴィンテージ)
   classification: string;       // 品質分類 (Premier Cru, Crianza, Reserva, etc.)

@@ -1,4 +1,5 @@
 import { PalateLevel } from "./types";
+import { normalizeGrape } from "./grape-master";
 
 // === Grape variety defaults ===
 
@@ -356,9 +357,15 @@ export const REGION_DEFAULTS: RegionDefaults[] = [
 
 // === Helper functions ===
 
-/** Get grape profile, returns undefined if not found */
+/** Get grape profile, returns undefined if not found.
+ * Uses grape master for normalization, so "シラー" will find "Syrah". */
 export function getGrapeProfile(grape: string): GrapeProfile | undefined {
-  return GRAPE_PROFILES[grape];
+  // Direct match first
+  if (GRAPE_PROFILES[grape]) return GRAPE_PROFILES[grape];
+  // Try normalizing through grape master
+  const canonical = normalizeGrape(grape);
+  if (canonical && GRAPE_PROFILES[canonical]) return GRAPE_PROFILES[canonical];
+  return undefined;
 }
 
 /** Get region defaults */
@@ -368,11 +375,11 @@ export function getRegionDefaults(countryCode: string, regionName: string): Regi
   );
 }
 
-/** Merge aromas from multiple grapes, dedup */
+/** Merge aromas from multiple grapes, dedup. Supports Japanese/English grape names. */
 export function getDefaultAromas(grapes: string[]): string[] {
   const aromas = new Set<string>();
   for (const grape of grapes) {
-    const profile = GRAPE_PROFILES[grape];
+    const profile = getGrapeProfile(grape);
     if (profile) {
       for (const a of profile.aromas) {
         aromas.add(a);
@@ -382,10 +389,10 @@ export function getDefaultAromas(grapes: string[]): string[] {
   return Array.from(aromas);
 }
 
-/** Average palate from multiple grapes */
+/** Average palate from multiple grapes. Supports Japanese/English grape names. */
 export function getDefaultPalate(grapes: string[], isRed: boolean) {
   const profiles = grapes
-    .map((g) => GRAPE_PROFILES[g])
+    .map((g) => getGrapeProfile(g))
     .filter((p): p is GrapeProfile => !!p);
 
   if (profiles.length === 0) {
@@ -412,10 +419,10 @@ export function getDefaultPalate(grapes: string[], isRed: boolean) {
   };
 }
 
-/** Get average ABV from grapes */
+/** Get average ABV from grapes. Supports Japanese/English grape names. */
 export function getDefaultAbv(grapes: string[]): number | null {
   const profiles = grapes
-    .map((g) => GRAPE_PROFILES[g])
+    .map((g) => getGrapeProfile(g))
     .filter((p): p is GrapeProfile => !!p);
   if (profiles.length === 0) return null;
   const avg =

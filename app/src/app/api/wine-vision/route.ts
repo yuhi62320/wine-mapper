@@ -72,7 +72,8 @@ Return ONLY a valid JSON object (no markdown, no backticks, no explanation) with
     "name": "<wine name / cuvée name, empty string if same as producer>",
     "country": "<country of origin in English, e.g. France, Italy>",
     "region": "<wine region, e.g. Bordeaux, Tuscany>",
-    "subRegion": "<sub-region if visible, e.g. Saint-Julien, Barolo>",
+    "subRegion": "<sub-region if visible, e.g. Médoc, Côte de Nuits>",
+    "village": "<village/commune if visible, e.g. Pauillac, Chambolle-Musigny, Barolo>",
     "vintage": <year as number or null>,
     "appellation": "<appellation system: AOC, AOP, DOCG, DOC, DO, etc.>",
     "classification": "<quality tier: Grand Cru, Premier Cru, Reserva, etc.>",
@@ -111,7 +112,7 @@ Return ONLY a valid JSON object (no markdown, no backticks, no explanation) with
 
 IMPORTANT RULES:
 - For grapeVarieties: If not on label, use your knowledge to fill in the likely varieties
-- For region/subRegion: Infer from appellation if not explicitly stated (e.g., "Pauillac" → region: "Bordeaux", subRegion: "Pauillac")
+- For region/subRegion/village: Infer from appellation. Example: "Pauillac" → region: "Bordeaux", subRegion: "Médoc", village: "Pauillac". "Chambolle-Musigny" → region: "Burgundy", subRegion: "Côte de Nuits", village: "Chambolle-Musigny"
 - For price: Use Japanese retail market prices in JPY
 - For aromas: Be specific to THIS wine/vintage, not generic grape aromas
 - grapeBaseAromas/grapeBasePalate: These represent the TYPICAL profile of the grape variety (not this specific wine)

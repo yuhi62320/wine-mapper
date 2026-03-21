@@ -116,6 +116,12 @@ export default function WineDetailPage() {
                 <span className="text-gray-800">{wine.subRegion}</span>
               </div>
             )}
+            {wine.village && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">村名</span>
+                <span className="text-gray-800">{wine.village}</span>
+              </div>
+            )}
             {wine.appellation && (
               <div className="flex justify-between">
                 <span className="text-gray-500">格付け</span>

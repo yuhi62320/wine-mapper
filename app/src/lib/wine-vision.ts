@@ -6,6 +6,7 @@ export interface WineVisionLabel {
   country: string;
   region: string;
   subRegion: string;
+  village: string;
   vintage: number | null;
   appellation: string;
   classification: string;
@@ -100,6 +101,7 @@ export async function analyzeWineLabel(
         country: String(label.country || ""),
         region: String(label.region || ""),
         subRegion: String(label.subRegion || ""),
+        village: String(label.village || ""),
         vintage: label.vintage != null ? Number(label.vintage) : null,
         appellation: String(label.appellation || ""),
         classification: String(label.classification || ""),
