@@ -13,6 +13,7 @@ import {
   Loader2,
   RotateCcw,
   Search,
+  RefreshCw,
 } from "lucide-react";
 import {
   WineType,
@@ -38,28 +39,7 @@ import {
 } from "@/lib/wine-defaults";
 import { normalizeGrapes, getGrapeSuggestions, findGrape } from "@/lib/grape-master";
 import RadarChart from "@/components/radar-chart";
-
-// Static mapping of wine region landscape images (Unsplash direct URLs)
-const REGION_IMAGES: Record<string, string> = {
-  "Bordeaux": "https://images.unsplash.com/photo-1566903451935-7f4509b81580?w=600&h=300&fit=crop",
-  "Burgundy": "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=300&fit=crop",
-  "Champagne": "https://images.unsplash.com/photo-1568213214202-ecad2c06aeb0?w=600&h=300&fit=crop",
-  "Loire Valley": "https://images.unsplash.com/photo-1589279003513-467d320f47eb?w=600&h=300&fit=crop",
-  "Rhône Valley": "https://images.unsplash.com/photo-1596394723269-e9b2f4e2b4b0?w=600&h=300&fit=crop",
-  "Alsace": "https://images.unsplash.com/photo-1590073242678-70ee3fc28f8e?w=600&h=300&fit=crop",
-  "Provence": "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=600&h=300&fit=crop",
-  "Tuscany": "https://images.unsplash.com/photo-1523528283115-9bf9b1699245?w=600&h=300&fit=crop",
-  "Piedmont": "https://images.unsplash.com/photo-1592861956120-e524fc739696?w=600&h=300&fit=crop",
-  "Veneto": "https://images.unsplash.com/photo-1534445867742-43195f401b6c?w=600&h=300&fit=crop",
-  "Rioja": "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=600&h=300&fit=crop",
-  "Napa Valley": "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=300&fit=crop",
-  "Sonoma": "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=600&h=300&fit=crop",
-  "Barossa Valley": "https://images.unsplash.com/photo-1474722883778-792e7990302f?w=600&h=300&fit=crop",
-  "Marlborough": "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=600&h=300&fit=crop",
-  "Mendoza": "https://images.unsplash.com/photo-1543418219-44e30b057fea?w=600&h=300&fit=crop",
-  "Mosel": "https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?w=600&h=300&fit=crop",
-  "_default": "https://images.unsplash.com/photo-1504279577054-acfeccf8fc52?w=600&h=300&fit=crop",
-};
+import { getRegionImage, getSectionImage, getGuideText } from "@/lib/region-images";
 
 const PALATE_LABELS: Record<string, { label: string; levels: string[] }> = {
   sweetness: {
@@ -143,8 +123,9 @@ export default function NewWinePage() {
   // Text search (when no image)
   const [textSearching, setTextSearching] = useState(false);
 
-  // Region guide
-  const [regionGuide, setRegionGuide] = useState<Record<string, string> | null>(null);
+  // Region guide (supports both old string format and new object format)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [regionGuide, setRegionGuide] = useState<Record<string, any> | null>(null);
   const [loadingGuide, setLoadingGuide] = useState(false);
 
   // Grape base data for overlay
@@ -278,6 +259,29 @@ export default function NewWinePage() {
       .catch(() => {})
       .finally(() => setLoadingGuide(false));
   }, [country, region]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Force refresh region guide (clear cache and re-fetch)
+  function handleRefreshGuide() {
+    if (!country || !region) return;
+    const cacheKey = `region-guide:${country}:${region}`;
+    try { localStorage.removeItem(cacheKey); } catch { /* ignore */ }
+    setRegionGuide(null);
+    setLoadingGuide(true);
+    fetch("/api/region-guide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country, region, subRegion, village, grapeVarieties: normalizedGrapes }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) {
+          setRegionGuide(data);
+          try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch { /* quota exceeded */ }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingGuide(false));
+  }
 
   // === Scan label with Claude Vision ===
   async function handleScan(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1026,46 +1030,89 @@ export default function NewWinePage() {
 
       {/* === REGION GUIDE === */}
       {(regionGuide || loadingGuide) && (
-        <div className="mb-6 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
-          <h3 className="font-medium text-amber-900 mb-2 flex items-center gap-1.5 text-sm">
-            📍 {regionGuide?.regionName || region}の産地ガイド
-          </h3>
+        <div className="mb-6">
+          {/* Header with refresh button */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-gray-900 flex items-center gap-1.5 text-sm">
+              📍 {regionGuide?.regionName || region}の産地ガイド
+            </h3>
+            <button
+              onClick={handleRefreshGuide}
+              disabled={loadingGuide}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#722f37] disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw size={12} className={loadingGuide ? "animate-spin" : ""} />
+              AIで再検索
+            </button>
+          </div>
+
           {loadingGuide ? (
-            <div className="flex items-center gap-2 text-xs text-amber-600">
+            <div className="flex items-center justify-center gap-2 text-xs text-amber-600 py-12 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl">
               <Loader2 size={14} className="animate-spin" /> 産地情報を取得中...
             </div>
           ) : regionGuide && (
-            <div className="space-y-2.5 text-xs text-amber-800">
-              {/* Region landscape image */}
-              <div className="w-full h-36 rounded-lg overflow-hidden mb-3">
+            <div className="space-y-3">
+              {/* Hero image */}
+              <div className="w-full h-44 rounded-xl overflow-hidden relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={REGION_IMAGES[region] || REGION_IMAGES._default}
+                  src={getRegionImage(region)}
                   alt={`${region} wine region`}
                   className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-3 left-4 text-white">
+                  <div className="text-lg font-bold">{regionGuide.regionName || region}</div>
+                  <div className="text-xs text-white/80">{region}</div>
+                </div>
               </div>
-              {regionGuide.terroir && (
-                <div><span className="font-medium text-amber-900">🌍 テロワール:</span> {regionGuide.terroir}</div>
-              )}
-              {regionGuide.keyStyles && (
-                <div><span className="font-medium text-amber-900">🍷 主要スタイル:</span> {regionGuide.keyStyles}</div>
-              )}
-              {regionGuide.history && (
-                <div><span className="font-medium text-amber-900">📜 歴史:</span> {regionGuide.history}</div>
-              )}
-              {regionGuide.foodPairing && (
-                <div><span className="font-medium text-amber-900">🍽️ ペアリング:</span> {regionGuide.foodPairing}</div>
-              )}
-              {regionGuide.visitTips && (
-                <div><span className="font-medium text-amber-900">✈️ 旅行:</span> {regionGuide.visitTips}</div>
-              )}
-              {regionGuide.sommNotes && (
-                <div><span className="font-medium text-amber-900">📝 ソムリエ試験:</span> {regionGuide.sommNotes}</div>
-              )}
-              {regionGuide.funFact && (
-                <div><span className="font-medium text-amber-900">💡 豆知識:</span> {regionGuide.funFact}</div>
-              )}
+
+              {/* Guide section cards */}
+              {[
+                { key: "terroir", emoji: "🌍", title: "テロワール" },
+                { key: "climate", emoji: "🌤️", title: "気候" },
+                { key: "history", emoji: "📜", title: "歴史" },
+                { key: "keyStyles", emoji: "🍷", title: "主要スタイル" },
+                { key: "topProducers", emoji: "🏆", title: "著名な生産者" },
+                { key: "foodPairing", emoji: "🍽️", title: "フードペアリング" },
+                { key: "visitTips", emoji: "✈️", title: "旅行ガイド" },
+                { key: "regulations", emoji: "📋", title: "法規・規定" },
+                { key: "sommNotes", emoji: "📝", title: "ソムリエ試験ポイント" },
+                { key: "vintageGuide", emoji: "📅", title: "ヴィンテージガイド" },
+                { key: "funFact", emoji: "💡", title: "豆知識" },
+              ].map(({ key, emoji, title }) => {
+                const text = getGuideText(regionGuide[key]);
+                if (!text) return null;
+                return (
+                  <div key={key} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="flex">
+                      {/* Section image */}
+                      <div className="w-24 min-h-[80px] flex-shrink-0 relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={getSectionImage(key, region)}
+                          alt={title}
+                          className="w-full h-full object-cover absolute inset-0"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      </div>
+                      {/* Text content */}
+                      <div className="flex-1 p-3">
+                        <div className="font-medium text-gray-900 text-xs mb-1 flex items-center gap-1">
+                          {emoji} {title}
+                        </div>
+                        <p className="text-xs text-gray-600 leading-relaxed">{text}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Copyright notice */}
+              <p className="text-[10px] text-gray-400 text-center pt-1">
+                📷 Photos: Unsplash / CC0
+              </p>
             </div>
           )}
         </div>

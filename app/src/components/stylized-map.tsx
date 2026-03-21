@@ -16,16 +16,16 @@ interface WorldRegion {
   countries: string[]; // country codes
 }
 
-// Representative Unsplash photos for each world wine region
+// Representative Unsplash photos for each world wine region (verified working IDs)
 const WORLD_REGION_IMAGES: Record<string, string> = {
-  "western-europe": "https://images.unsplash.com/photo-1566903451935-7f4509b81580?w=80&h=80&fit=crop",
-  "eastern-europe": "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=80&h=80&fit=crop",
-  "british-isles": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=80&h=80&fit=crop",
-  "north-america": "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=80&h=80&fit=crop",
-  "south-america": "https://images.unsplash.com/photo-1543418219-44e30b057fea?w=80&h=80&fit=crop",
-  "oceania": "https://images.unsplash.com/photo-1474722883778-792e7990302f?w=80&h=80&fit=crop",
-  "asia": "https://images.unsplash.com/photo-1528164344705-47542687000d?w=80&h=80&fit=crop",
-  "middle-east-africa": "https://images.unsplash.com/photo-1504279577054-acfeccf8fc52?w=80&h=80&fit=crop",
+  "western-europe": "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=120&h=120&fit=crop&crop=center",
+  "eastern-europe": "https://images.unsplash.com/photo-1577083165633-14ebcdb0f658?w=120&h=120&fit=crop&crop=center",
+  "british-isles": "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=120&h=120&fit=crop&crop=center",
+  "north-america": "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=120&h=120&fit=crop&crop=center",
+  "south-america": "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=120&h=120&fit=crop&crop=center",
+  "oceania": "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=120&h=120&fit=crop&crop=center",
+  "asia": "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=120&h=120&fit=crop&crop=center",
+  "middle-east-africa": "https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?w=120&h=120&fit=crop&crop=center",
 };
 
 const WORLD_REGIONS: WorldRegion[] = [
@@ -283,6 +283,7 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
             src={WORLD_REGION_IMAGES[selectedWorldRegion.id]}
             alt={selectedWorldRegion.nameEn}
             className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
           />
           <h2 className="text-lg font-bold text-gray-900">
             {selectedWorldRegion.name}
@@ -408,7 +409,17 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
                     className={`w-10 h-10 rounded-full object-cover flex-shrink-0 ${
                       hasExplored ? "" : "opacity-40 grayscale"
                     }`}
+                    onError={(e) => {
+                      const el = e.target as HTMLImageElement;
+                      el.style.display = "none";
+                      // Show the emoji icon as fallback
+                      const fallback = el.parentElement?.querySelector(".emoji-fallback");
+                      if (fallback) (fallback as HTMLElement).style.display = "flex";
+                    }}
                   />
+                  <div className="emoji-fallback w-10 h-10 rounded-full bg-gray-100 items-center justify-center text-xl flex-shrink-0 hidden">
+                    {wr.icon}
+                  </div>
                   <div>
                     <div
                       className={`font-medium ${
@@ -458,6 +469,9 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
           );
         })}
       </div>
+      <p className="text-[10px] text-gray-400 text-center mt-3">
+        📷 Photos: Unsplash / CC0
+      </p>
     </div>
   );
 }
