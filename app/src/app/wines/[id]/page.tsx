@@ -8,6 +8,7 @@ import { WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS, PalateLevel } from "@/lib/
 import { getWines } from "@/lib/store";
 import { getDefaultPalate } from "@/lib/wine-defaults";
 import RadarChart from "@/components/radar-chart";
+import { getAromaVisual, AROMA_IMAGE_COPYRIGHT } from "@/lib/aroma-images";
 
 const PALATE_NAMES: Record<string, string> = {
   sweetness: "甘さ",
@@ -238,20 +239,31 @@ export default function WineDetailPage() {
           </div>
         )}
 
-        {/* Aromas */}
+        {/* Aromas with images */}
         {wine.aromas.length > 0 && (
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <h2 className="font-medium text-gray-800 mb-2">香り</h2>
-            <div className="flex flex-wrap gap-1.5">
-              {wine.aromas.map((a) => (
-                <span
-                  key={a}
-                  className="px-2.5 py-1 text-xs bg-[#722f37]/10 text-[#722f37] rounded-full"
-                >
-                  {a}
-                </span>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {wine.aromas.map((a) => {
+                const visual = getAromaVisual(a);
+                return (
+                  <span key={a}
+                    className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 text-xs bg-[#722f37]/10 text-[#722f37] rounded-full">
+                    <span className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 bg-white flex items-center justify-center">
+                      {visual.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={visual.imageUrl} alt={a} className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.textContent = visual.emoji; }} />
+                      ) : (
+                        <span className="text-[10px]">{visual.emoji}</span>
+                      )}
+                    </span>
+                    {a}
+                  </span>
+                );
+              })}
             </div>
+            <p className="text-[9px] text-gray-300 mt-2">📷 {AROMA_IMAGE_COPYRIGHT}</p>
           </div>
         )}
 
@@ -350,6 +362,56 @@ export default function WineDetailPage() {
             </div>
           );
         })()}
+
+        {/* Saved Tours */}
+        {wine.tours && wine.tours.length > 0 && (
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <h2 className="font-medium text-gray-800 mb-3 flex items-center gap-1.5">
+              ✈️ 保存した旅行プラン
+            </h2>
+            <div className="space-y-3">
+              {wine.tours.map((tour, i) => {
+                const typeEmoji: Record<string, string> = {
+                  winery_visit: "🏰",
+                  wine_tour: "🚌",
+                  food_pairing: "🍽️",
+                  harvest_experience: "🍇",
+                  city_tour: "🏙️",
+                  accommodation: "🏨",
+                };
+                return (
+                  <div key={i} className="border border-gray-100 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-900 text-sm flex items-center gap-1.5 mb-1">
+                      <span>{typeEmoji[tour.type] || "🗺️"}</span>
+                      {tour.title}
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5 mb-1.5">
+                      <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.location}</span>
+                      <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.duration}</span>
+                      {tour.priceRange && (
+                        <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.priceRange}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">{tour.description}</p>
+                    {tour.highlights && tour.highlights.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {tour.highlights.map((h, j) => (
+                          <span key={j} className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full">{h}</span>
+                        ))}
+                      </div>
+                    )}
+                    {tour.bestSeason && (
+                      <p className="text-[10px] text-gray-400 mt-1">🗓️ ベストシーズン: {tour.bestSeason}</p>
+                    )}
+                    {tour.bookingTip && (
+                      <p className="text-[10px] text-amber-600 mt-1">💡 {tour.bookingTip}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Date */}
         <div className="text-center text-xs text-gray-400 mt-4">

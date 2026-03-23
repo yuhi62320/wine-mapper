@@ -70,6 +70,22 @@ export interface WineLog {
   notes: string;
   date: string;                 // ISO date
   createdAt: string;
+
+  // === Saved tours (optional) ===
+  tours?: WineTour[];
+}
+
+export interface WineTour {
+  title: string;
+  description: string;
+  type: "winery_visit" | "wine_tour" | "food_pairing" | "harvest_experience" | "city_tour" | "accommodation";
+  location: string;
+  duration: string;
+  bestSeason: string;
+  priceRange: string;
+  highlights: string[];
+  bookingTip: string;
+  imageKeyword?: string;
 }
 
 export interface UserProfile {

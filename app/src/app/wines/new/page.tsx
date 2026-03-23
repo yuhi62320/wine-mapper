@@ -18,6 +18,7 @@ import {
 import {
   WineType,
   WineLog,
+  WineTour,
   PalateLevel,
   WINE_TYPE_LABELS,
   WINE_TYPE_COLORS,
@@ -40,6 +41,7 @@ import {
 import { normalizeGrapes, getGrapeSuggestions, findGrape } from "@/lib/grape-master";
 import RadarChart from "@/components/radar-chart";
 import { getRegionImage, getSectionImage, getGuideText } from "@/lib/region-images";
+import { getAromaVisual, AROMA_IMAGE_COPYRIGHT } from "@/lib/aroma-images";
 
 const PALATE_LABELS: Record<string, { label: string; levels: string[] }> = {
   sweetness: {
@@ -127,6 +129,13 @@ export default function NewWinePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [regionGuide, setRegionGuide] = useState<Record<string, any> | null>(null);
   const [loadingGuide, setLoadingGuide] = useState(false);
+
+  // Tour search
+  const [tours, setTours] = useState<WineTour[]>([]);
+  const [tourTravelTips, setTourTravelTips] = useState("");
+  const [tourNearby, setTourNearby] = useState<string[]>([]);
+  const [searchingTours, setSearchingTours] = useState(false);
+  const [savedTours, setSavedTours] = useState<WineTour[]>([]);
 
   // Grape base data for overlay
   const [grapeBaseAromas, setGrapeBaseAromas] = useState<string[]>([]);
@@ -462,6 +471,49 @@ export default function NewWinePage() {
     setFinish(dp.finish);
   }
 
+  // === Tour Search ===
+  async function handleTourSearch() {
+    setSearchingTours(true);
+    setTours([]);
+    setTourTravelTips("");
+    setTourNearby([]);
+    try {
+      const res = await fetch("/api/wine-tours", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          producer,
+          wineName: name,
+          country: selectedCountry?.name || country,
+          region,
+          subRegion,
+          village,
+          grapeVarieties: normalizedGrapes,
+        }),
+      });
+      if (!res.ok) {
+        setSearchingTours(false);
+        return;
+      }
+      const data = await res.json();
+      if (data.tours) setTours(data.tours);
+      if (data.travelTips) setTourTravelTips(data.travelTips);
+      if (data.nearbyAttractions) setTourNearby(data.nearbyAttractions);
+    } catch {
+      // ignore
+    } finally {
+      setSearchingTours(false);
+    }
+  }
+
+  function toggleSaveTour(tour: WineTour) {
+    setSavedTours((prev) => {
+      const exists = prev.some((t) => t.title === tour.title);
+      if (exists) return prev.filter((t) => t.title !== tour.title);
+      return [...prev, tour];
+    });
+  }
+
   function handleSubmit() {
     const wine: WineLog = {
       id: uuidv4(),
@@ -496,6 +548,7 @@ export default function NewWinePage() {
       notes,
       date: new Date().toISOString().split("T")[0],
       createdAt: new Date().toISOString(),
+      tours: savedTours.length > 0 ? savedTours : undefined,
     };
 
     const result = addWine(wine);
@@ -907,16 +960,31 @@ export default function NewWinePage() {
           </button>
         </div>
 
-        {/* Always-visible selected aromas */}
+        {/* Always-visible selected aromas with images */}
         {selectedAromas.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {selectedAromas.map((a) => (
-              <button key={a} onClick={() => toggleAroma(a)}
-                className="px-2.5 py-1 text-xs rounded-full bg-[#722f37] text-white">
-                {a} ✕
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {selectedAromas.map((a) => {
+              const visual = getAromaVisual(a);
+              return (
+                <button key={a} onClick={() => toggleAroma(a)}
+                  className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 text-xs rounded-full bg-[#722f37] text-white group relative overflow-hidden">
+                  <span className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-white/20 flex items-center justify-center">
+                    {visual.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={visual.imageUrl} alt={a} className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.textContent = visual.emoji; }} />
+                    ) : (
+                      <span className="text-sm">{visual.emoji}</span>
+                    )}
+                  </span>
+                  {a} ✕
+                </button>
+              );
+            })}
           </div>
+        )}
+        {selectedAromas.length > 0 && (
+          <p className="text-[9px] text-gray-300 mb-1">📷 {AROMA_IMAGE_COPYRIGHT}</p>
         )}
 
         {/* Toggle aroma picker */}
@@ -946,13 +1014,23 @@ export default function NewWinePage() {
                           {sub.descriptors.map((d) => {
                             const isSelected = selectedAromas.includes(d.ja);
                             const isGrapeBase = grapeBaseAromas.includes(d.ja);
+                            const vis = getAromaVisual(d.ja);
                             return (
                               <button key={d.en} onClick={() => toggleAroma(d.ja)}
-                                className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                                className={`flex items-center gap-1 pl-1 pr-2.5 py-1 text-xs rounded-full border transition-colors ${
                                   isSelected ? "bg-[#722f37] text-white border-[#722f37]"
                                     : isGrapeBase ? "bg-[#d4a574]/10 text-[#d4a574] border-[#d4a574]/40"
                                       : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#722f37]/50"
                                 }`}>
+                                <span className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 bg-white/20 flex items-center justify-center text-[10px]">
+                                  {vis.imageUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={vis.imageUrl} alt={d.ja} className="w-full h-full object-cover"
+                                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.textContent = vis.emoji; }} />
+                                  ) : (
+                                    vis.emoji
+                                  )}
+                                </span>
                                 {d.ja}
                               </button>
                             );
@@ -1113,6 +1191,110 @@ export default function NewWinePage() {
               <p className="text-[10px] text-gray-400 text-center pt-1">
                 📷 Photos: Unsplash / CC0
               </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* === TOUR SEARCH SECTION === */}
+      {(country || region) && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-gray-900 text-sm flex items-center gap-1.5">
+              ✈️ 関連する旅行プラン
+            </h3>
+            <button
+              onClick={handleTourSearch}
+              disabled={searchingTours}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {searchingTours ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+              {searchingTours ? "検索中..." : "ツアーを検索"}
+            </button>
+          </div>
+
+          {tours.length > 0 && (
+            <div className="space-y-3">
+              {/* Travel tips */}
+              {tourTravelTips && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    💡 {tourTravelTips}
+                  </p>
+                </div>
+              )}
+
+              {/* Tour cards */}
+              {tours.map((tour, i) => {
+                const isSaved = savedTours.some((t) => t.title === tour.title);
+                const typeEmoji: Record<string, string> = {
+                  winery_visit: "🏰",
+                  wine_tour: "🚌",
+                  food_pairing: "🍽️",
+                  harvest_experience: "🍇",
+                  city_tour: "🏙️",
+                  accommodation: "🏨",
+                };
+                return (
+                  <div key={i} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isSaved ? "border-blue-400 ring-1 ring-blue-200" : "border-gray-100"}`}>
+                    <div className="p-3">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 text-sm flex items-center gap-1.5">
+                            <span>{typeEmoji[tour.type] || "🗺️"}</span>
+                            {tour.title}
+                          </h4>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.location}</span>
+                            <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.duration}</span>
+                            {tour.priceRange && <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.priceRange}</span>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => toggleSaveTour(tour)}
+                          className={`flex-shrink-0 px-2.5 py-1 text-[10px] rounded-lg font-medium transition-colors ${
+                            isSaved ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500"
+                          }`}
+                        >
+                          {isSaved ? "✓ 保存済み" : "保存"}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-600 leading-relaxed mb-2">{tour.description}</p>
+                      {tour.highlights && tour.highlights.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {tour.highlights.map((h, j) => (
+                            <span key={j} className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full">{h}</span>
+                          ))}
+                        </div>
+                      )}
+                      {tour.bestSeason && (
+                        <p className="text-[10px] text-gray-400">🗓️ ベストシーズン: {tour.bestSeason}</p>
+                      )}
+                      {tour.bookingTip && (
+                        <p className="text-[10px] text-amber-600 mt-1">💡 {tour.bookingTip}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Nearby attractions */}
+              {tourNearby.length > 0 && (
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <h4 className="text-xs font-medium text-gray-700 mb-1.5">🏛️ 周辺の観光名所</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tourNearby.map((a, i) => (
+                      <span key={i} className="text-[10px] px-2 py-1 bg-white text-gray-600 rounded-full border border-gray-200">{a}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {savedTours.length > 0 && (
+                <p className="text-[10px] text-blue-500 text-center">
+                  ✓ {savedTours.length}件のツアーが保存されます
+                </p>
+              )}
             </div>
           )}
         </div>
