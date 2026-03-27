@@ -14,8 +14,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body className="min-h-screen bg-[#fafaf8] pb-20">
-        <main className="max-w-lg mx-auto">{children}</main>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-screen bg-surface text-on-surface pb-24">
+        <main className="max-w-2xl mx-auto">{children}</main>
         <Navigation />
       </body>
     </html>

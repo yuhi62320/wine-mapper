@@ -4,7 +4,7 @@ import { PalateLevel } from "@/lib/types";
 
 interface RadarChartProps {
   data: { label: string; value: PalateLevel }[];
-  baseData?: { label: string; value: PalateLevel }[]; // grape variety base layer
+  baseData?: { label: string; value: PalateLevel }[];
   size?: number;
   color?: string;
   baseColor?: string;
@@ -16,7 +16,7 @@ export default function RadarChart({
   data,
   baseData,
   size = 240,
-  color = "#722f37",
+  color = "#561922",
   baseColor = "#d4a574",
   interactive = false,
   onChange,
@@ -45,13 +45,13 @@ export default function RadarChart({
     return points;
   });
 
-  // Base data polygon (grape variety defaults)
+  // Base data polygon
   const basePoints = baseData
     ?.map((d, i) => getPoint(i, d.value))
     .map(([x, y]) => `${x},${y}`)
     .join(" ");
 
-  // Data polygon (wine-specific / user values)
+  // Data polygon
   const dataPoints = data
     .map((d, i) => getPoint(i, d.value))
     .map(([x, y]) => `${x},${y}`)
@@ -76,14 +76,15 @@ export default function RadarChart({
 
   return (
     <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
-      {/* Grid */}
+      {/* Grid - delicate hairline strokes */}
       {gridPolygons.map((points, i) => (
         <polygon
           key={i}
           points={points}
           fill="none"
-          stroke="#e5e7eb"
-          strokeWidth={i === levels - 1 ? 1 : 0.5}
+          stroke="#d8c1c2"
+          strokeWidth={0.5}
+          strokeDasharray={i < levels - 1 ? "2 2" : undefined}
         />
       ))}
 
@@ -97,8 +98,8 @@ export default function RadarChart({
             y1={center}
             x2={x}
             y2={y}
-            stroke="#e5e7eb"
-            strokeWidth={0.5}
+            stroke="#d8c1c2"
+            strokeWidth={0.3}
           />
         );
       })}
@@ -109,9 +110,9 @@ export default function RadarChart({
           <polygon
             points={basePoints}
             fill={baseColor}
-            fillOpacity={0.1}
+            fillOpacity={0.08}
             stroke={baseColor}
-            strokeWidth={1.5}
+            strokeWidth={1}
             strokeDasharray="4 3"
           />
           {baseData.map((d, i) => {
@@ -121,7 +122,7 @@ export default function RadarChart({
                 key={`base-${i}`}
                 cx={x}
                 cy={y}
-                r={3}
+                r={2.5}
                 fill={baseColor}
                 stroke="white"
                 strokeWidth={1}
@@ -131,16 +132,16 @@ export default function RadarChart({
         </>
       )}
 
-      {/* Data area (wine-specific / user values) */}
+      {/* Data area - transparent wine tint */}
       <polygon
         points={dataPoints}
         fill={color}
-        fillOpacity={0.2}
+        fillOpacity={0.15}
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={1.5}
       />
 
-      {/* Data points */}
+      {/* Data points - refined like map pins */}
       {data.map((d, i) => {
         const [x, y] = getPoint(i, d.value);
         return (
@@ -148,17 +149,17 @@ export default function RadarChart({
             key={i}
             cx={x}
             cy={y}
-            r={interactive ? 8 : 4}
+            r={interactive ? 6 : 3}
             fill={color}
             stroke="white"
-            strokeWidth={2}
+            strokeWidth={1.5}
             className={interactive ? "cursor-pointer" : ""}
             onClick={() => handleClick(i)}
           />
         );
       })}
 
-      {/* Labels */}
+      {/* Labels - serif & elegant */}
       {data.map((d, i) => (
         <text
           key={i}
@@ -166,31 +167,15 @@ export default function RadarChart({
           y={labelPositions[i].y}
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize={11}
-          fill="#6b7280"
+          fontSize={10}
+          fill="#534343"
           fontWeight={500}
+          fontStyle="italic"
+          fontFamily="'Noto Serif JP', serif"
         >
           {d.label}
         </text>
       ))}
-
-      {/* Value labels on points */}
-      {data.map((d, i) => {
-        const [x, y] = getPoint(i, d.value);
-        return (
-          <text
-            key={`v${i}`}
-            x={x}
-            y={y - 12}
-            textAnchor="middle"
-            fontSize={9}
-            fill={color}
-            fontWeight={600}
-          >
-            {d.value}
-          </text>
-        );
-      })}
     </svg>
   );
 }

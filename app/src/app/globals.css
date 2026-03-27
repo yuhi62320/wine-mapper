@@ -1,15 +1,127 @@
 @import "tailwindcss";
+@import "@fontsource/noto-serif-jp/400.css";
+@import "@fontsource/noto-serif-jp/700.css";
+@import "@fontsource/noto-serif-jp/900.css";
+@import "@fontsource/plus-jakarta-sans/300.css";
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
 
-:root {
+/* === The Sommelier's Digital Ledger - Design System === */
+
+@theme {
+  /* Primary: Bordeaux depth */
+  --color-primary: #561922;
+  --color-primary-container: #722f37;
+  --color-primary-fixed: #ffdadb;
+  --color-primary-fixed-dim: #ffb2b8;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #f499a0;
+
+  /* Secondary: Aged gold */
+  --color-secondary: #755b00;
+  --color-secondary-container: #fed977;
+  --color-secondary-fixed: #ffe08f;
+  --color-secondary-fixed-dim: #e6c364;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #785d00;
+
+  /* Tertiary: Warm earth */
+  --color-tertiary: #412823;
+  --color-tertiary-container: #593e38;
+  --color-tertiary-fixed: #ffdad2;
+
+  /* Surface hierarchy: Cotton paper layers */
+  --color-surface: #fcf9f3;
+  --color-surface-bright: #fcf9f3;
+  --color-surface-dim: #dcdad4;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f6f3ed;
+  --color-surface-container: #f0eee8;
+  --color-surface-container-high: #ebe8e2;
+  --color-surface-container-highest: #e5e2dc;
+  --color-surface-variant: #e5e2dc;
+
+  /* On-surface */
+  --color-on-surface: #1c1c18;
+  --color-on-surface-variant: #534343;
+  --color-on-background: #1c1c18;
+  --color-background: #fcf9f3;
+
+  /* Outline */
+  --color-outline: #867273;
+  --color-outline-variant: #d8c1c2;
+
+  /* Error */
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  /* Inverse */
+  --color-inverse-surface: #31312d;
+  --color-inverse-on-surface: #f3f0ea;
+  --color-inverse-primary: #ffb2b8;
+  --color-surface-tint: #92484f;
+
+  /* Legacy aliases for existing code */
   --color-wine: #722f37;
   --color-wine-light: #9b4d55;
   --color-wine-dark: #4a1f24;
   --color-gold: #c9a84c;
   --color-gold-light: #e8d18c;
   --color-cream: #fdf6e3;
+
+  /* Font families */
+  --font-headline: "Noto Serif JP", serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+  --font-label: "Plus Jakarta Sans", sans-serif;
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
-  background-color: #fafaf8;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background-color: #fcf9f3;
+  color: #1c1c18;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Serif headline utility */
+.font-headline {
+  font-family: "Noto Serif JP", serif;
+}
+
+/* Material Symbols configuration */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
+  vertical-align: middle;
+}
+
+/* Glass panel effect */
+.glass-panel {
+  background: rgba(252, 249, 243, 0.8);
+  backdrop-filter: blur(20px);
+}
+
+/* No-scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Notebook line texture for tasting notes */
+.notebook-line {
+  background-image: linear-gradient(#d8c1c2 1px, transparent 1px);
+  background-size: 100% 2.5rem;
+  line-height: 2.5rem;
+}
+
+/* Selection color */
+::selection {
+  background-color: #fed977;
+  color: #1c1c18;
 }

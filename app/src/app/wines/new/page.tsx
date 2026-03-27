@@ -4,18 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import {
-  ChevronDown,
-  ChevronUp,
-  Star,
-  Check,
-  Sparkles,
-  Camera,
-  Loader2,
-  RotateCcw,
-  Search,
-  RefreshCw,
-} from "lucide-react";
-import {
   WineType,
   WineLog,
   WineTour,
@@ -65,6 +53,19 @@ const PALATE_LABELS: Record<string, { label: string; levels: string[] }> = {
     levels: ["短い", "やや短い", "中程度", "やや長い", "長い"],
   },
 };
+
+// Reusable section header component
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 my-6">
+      <div className="h-px flex-1 bg-[#d8c1c2]/30" />
+      <span className="text-[10px] font-label tracking-[0.2em] uppercase text-[#c9a84c]">
+        {label}
+      </span>
+      <div className="h-px flex-1 bg-[#d8c1c2]/30" />
+    </div>
+  );
+}
 
 export default function NewWinePage() {
   const router = useRouter();
@@ -582,10 +583,6 @@ export default function NewWinePage() {
 
   const canSubmit = (producer || name) && country && rating > 0;
 
-  const inputCls =
-    "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#722f37]/20 focus:border-[#722f37]";
-  const selectCls = `${inputCls} bg-white`;
-
   // Grape suggestions filtered
   const allGrapeSuggestions = getGrapeSuggestions();
   const filteredSuggestions = grapeFilter
@@ -607,120 +604,164 @@ export default function NewWinePage() {
     setPalateInitialized(false);
   }
 
+  // Underline input style
+  const underlineInput =
+    "w-full bg-transparent border-0 border-b border-[#d8c1c2]/30 px-1 py-2.5 text-sm text-[#1c1c18] placeholder:text-[#534343]/40 focus:outline-none focus:border-[#561922] transition-colors";
+  const underlineSelect =
+    "w-full bg-transparent border-0 border-b border-[#d8c1c2]/30 px-1 py-2.5 text-sm text-[#1c1c18] focus:outline-none focus:border-[#561922] transition-colors appearance-none";
+
   // === RESULT SCREEN ===
   if (logResult) {
     return (
-      <div className="px-4 pt-8 pb-24">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-4">🍷</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">記録完了！</h1>
-          <p className="text-gray-500">
-            {logResult.wine.producer}
-            {logResult.wine.name && ` - ${logResult.wine.name}`}
-          </p>
-        </div>
-
-        <div className="bg-gradient-to-r from-[#722f37] to-[#9b4d55] rounded-xl p-5 mb-4 text-white">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles size={20} />
-            <span className="font-bold text-lg">+{logResult.xpGained} XP</span>
+      <div className="min-h-screen bg-[#fcf9f3]">
+        <div className="px-5 pt-10 pb-28">
+          {/* Header */}
+          <div className="text-center mb-10">
+            <span className="material-symbols-outlined text-[#c9a84c] text-4xl mb-3 block">local_bar</span>
+            <h1 className="font-headline text-2xl text-[#1c1c18] mb-2">記録完了</h1>
+            <p className="text-sm text-[#534343]">
+              {logResult.wine.producer}
+              {logResult.wine.name && ` - ${logResult.wine.name}`}
+            </p>
           </div>
-          {logResult.bonusReasons.map((r, i) => (
-            <div key={i} className="text-sm text-white/80 ml-7">{r}</div>
-          ))}
-        </div>
 
-        <div className="bg-white rounded-xl p-4 mb-4 shadow-sm border border-gray-100">
-          <div className="flex justify-center">
-            <RadarChart data={radarData} baseData={radarBaseData} size={200} />
+          {/* XP Card */}
+          <div className="bg-gradient-to-br from-[#561922] to-[#722f37] rounded-2xl p-5 mb-5 text-white shadow-lg">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="material-symbols-outlined text-[#c9a84c]">auto_awesome</span>
+              <span className="font-headline text-xl">+{logResult.xpGained} XP</span>
+            </div>
+            {logResult.bonusReasons.map((r, i) => (
+              <div key={i} className="text-sm text-white/70 ml-9">{r}</div>
+            ))}
           </div>
-          {radarBaseData && (
-            <div className="flex items-center justify-center gap-4 mt-2 text-[10px] text-gray-400">
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-4 h-0.5 bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
-                品種の特徴
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
-                あなたの評価
-              </span>
+
+          {/* Radar Chart Card */}
+          <div className="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-[#d8c1c2]/20">
+            <div className="flex justify-center">
+              <RadarChart data={radarData} baseData={radarBaseData} size={200} />
+            </div>
+            {radarBaseData && (
+              <div className="flex items-center justify-center gap-4 mt-3 text-[10px] text-[#534343]">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-4 h-0.5 bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
+                  品種の特徴
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
+                  あなたの評価
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Rank Up */}
+          {logResult.rankUp && (
+            <div className="bg-[#c9a84c]/10 border border-[#c9a84c]/30 rounded-2xl p-5 mb-5 text-center">
+              <span className="material-symbols-outlined text-[#c9a84c] text-4xl mb-2 block">military_tech</span>
+              <div className="font-headline text-[#c9a84c] text-lg">ランクアップ!</div>
             </div>
           )}
-        </div>
 
-        {logResult.rankUp && (
-          <div className="bg-[#c9a84c]/10 border border-[#c9a84c]/30 rounded-xl p-4 mb-4 text-center">
-            <div className="text-3xl mb-2">🎉</div>
-            <div className="font-bold text-[#c9a84c]">ランクアップ！</div>
-          </div>
-        )}
-
-        {logResult.newBadges.length > 0 && (
-          <div className="bg-white rounded-xl p-4 mb-4 shadow-sm border border-gray-100">
-            <div className="font-medium text-gray-700 mb-2">新しいバッジ獲得！</div>
-            {logResult.newBadges.map((id) => {
-              const badge = BADGES.find((b) => b.id === id);
-              return badge ? (
-                <div key={id} className="flex items-center gap-2 py-1">
-                  <span className="text-xl">{badge.icon}</span>
-                  <div>
-                    <div className="font-medium text-sm">{badge.nameJa}</div>
-                    <div className="text-xs text-gray-500">{badge.description}</div>
+          {/* New Badges */}
+          {logResult.newBadges.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-[#d8c1c2]/20">
+              <div className="font-headline text-[#1c1c18] mb-3">新しいバッジ獲得!</div>
+              {logResult.newBadges.map((id) => {
+                const badge = BADGES.find((b) => b.id === id);
+                return badge ? (
+                  <div key={id} className="flex items-center gap-3 py-2">
+                    <span className="text-2xl">{badge.icon}</span>
+                    <div>
+                      <div className="font-medium text-sm text-[#1c1c18]">{badge.nameJa}</div>
+                      <div className="text-xs text-[#534343]">{badge.description}</div>
+                    </div>
                   </div>
-                </div>
-              ) : null;
-            })}
-          </div>
-        )}
+                ) : null;
+              })}
+            </div>
+          )}
 
-        <button
-          onClick={() => router.push("/")}
-          className="w-full bg-[#722f37] text-white py-3 rounded-xl font-medium hover:bg-[#5a252c] transition-colors"
-        >
-          ホームに戻る
-        </button>
+          {/* Home Button */}
+          <button
+            onClick={() => router.push("/")}
+            className="w-full py-3.5 rounded-full bg-[#561922] text-white font-headline text-sm tracking-wide hover:bg-[#722f37] transition-colors flex items-center justify-center gap-2 shadow-lg"
+          >
+            <span className="material-symbols-outlined text-lg">home</span>
+            ホームに戻る
+          </button>
+        </div>
       </div>
     );
   }
 
-  // === SINGLE-PAGE FORM ===
+  // === SINGLE-PAGE FORM (Wine Journal) ===
   return (
-    <div className="px-4 pt-6 pb-24">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">ワインを記録</h1>
-      <p className="text-sm text-gray-500 mb-4">
-        ラベル撮影で自動入力、または手入力で検索
-      </p>
+    <div className="min-h-screen bg-[#fcf9f3]">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleScan}
+        className="hidden"
+      />
 
-      {/* === SCAN / SEARCH SECTION === */}
-      <div className="mb-5 space-y-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleScan}
-          className="hidden"
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={scanning || textSearching}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-[#722f37]/30 text-[#722f37] font-medium hover:bg-[#722f37]/5 transition-colors disabled:opacity-50"
-        >
-          {scanning ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
-          {scanning ? "AIが分析中..." : "ラベルを撮影してAI自動入力"}
+      {/* ===== HEADER ===== */}
+      <header className="px-5 pt-5 pb-2 flex items-center justify-between">
+        <button onClick={() => router.back()} className="text-[#534343] p-1">
+          <span className="material-symbols-outlined text-xl">arrow_back</span>
         </button>
+        <div className="flex items-center gap-1.5 text-[#1c1c18]">
+          <span className="material-symbols-outlined text-lg text-[#c9a84c]">edit_note</span>
+          <span className="font-headline text-base tracking-wide">Wine Journal</span>
+        </div>
+        <div className="w-8" /> {/* Spacer for centering */}
+      </header>
 
-        <button
-          onClick={handleTextSearch}
-          disabled={textSearching || scanning || (!producer && !name)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#722f37] to-[#9b4d55] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40"
-        >
-          {textSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-          入力内容からAI検索
-        </button>
+      {/* ===== HERO TITLE ===== */}
+      <div className="text-center px-5 pt-6 pb-5">
+        <h1 className="font-headline text-[26px] text-[#1c1c18] leading-tight mb-1.5">
+          新しくワインを記す
+        </h1>
+        <p className="text-[11px] tracking-[0.25em] uppercase text-[#534343]/60 font-label">
+          The Sommelier&apos;s Ledger
+        </p>
+      </div>
 
+      {/* ===== QUICK SCAN / SEARCH BUTTONS ===== */}
+      <div className="px-5 mb-5">
+        <div className="flex gap-3">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={scanning || textSearching}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-full border border-[#561922] text-[#561922] text-sm font-medium hover:bg-[#561922]/5 transition-colors disabled:opacity-50"
+          >
+            {scanning ? (
+              <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+            ) : (
+              <span className="material-symbols-outlined text-lg">photo_camera</span>
+            )}
+            {scanning ? "分析中..." : "ラベル撮影"}
+          </button>
+          <button
+            onClick={handleTextSearch}
+            disabled={textSearching || scanning || (!producer && !name)}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-full bg-[#561922] text-white text-sm font-medium hover:bg-[#722f37] transition-colors disabled:opacity-40"
+          >
+            {textSearching ? (
+              <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+            ) : (
+              <span className="material-symbols-outlined text-lg">search</span>
+            )}
+            {textSearching ? "検索中..." : "検索して引用"}
+          </button>
+        </div>
+
+        {/* Scan message */}
         {scanMessage && (
-          <p className="text-xs text-center text-gray-500 whitespace-pre-line">
+          <p className="text-xs text-center text-[#534343]/70 mt-3 whitespace-pre-line leading-relaxed">
             {scanMessage}
           </p>
         )}
@@ -728,410 +769,630 @@ export default function NewWinePage() {
 
       {/* AI description banner */}
       {visionResult?.knowledge.description && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-          <p className="text-xs text-amber-800">
-            <Sparkles size={12} className="inline mr-1" />
+        <div className="mx-5 mb-5 bg-[#c9a84c]/10 border border-[#c9a84c]/25 rounded-2xl p-4">
+          <p className="text-xs text-[#755b00] leading-relaxed">
+            <span className="material-symbols-outlined text-xs align-middle mr-1">auto_awesome</span>
             {visionResult.knowledge.description}
           </p>
-          {priceHint && <p className="text-xs text-amber-600 mt-1">価格目安: {priceHint}</p>}
+          {priceHint && (
+            <p className="text-xs text-[#755b00]/70 mt-1.5">
+              <span className="material-symbols-outlined text-xs align-middle mr-0.5">payments</span>
+              価格目安: {priceHint}
+            </p>
+          )}
         </div>
       )}
 
-      {/* === LABEL SECTION === */}
-      <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">
-        ラベル情報
-      </div>
+      {/* ===== LEDGER CARD ===== */}
+      <div className="mx-4 mb-6 bg-white rounded-3xl shadow-[0_2px_20px_rgba(86,25,34,0.06)] border border-[#d8c1c2]/15 overflow-hidden">
+        <div className="px-5 pt-6 pb-5">
 
-      <div className="space-y-3 mb-6">
-        {/* Producer */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">
-            生産者名 <span className="text-red-400">*</span>
-          </label>
-          <input type="text" value={producer} onChange={(e) => setProducer(e.target.value)}
-            placeholder="例: Château Margaux" className={inputCls} />
-        </div>
+          {/* ---- REGISTRY SECTION ---- */}
+          <SectionDivider label="Registry" />
 
-        {/* Wine Name */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">ワイン名 / キュヴェ名</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="例: Les Forts de Latour" className={inputCls} />
-        </div>
-
-        {/* Type */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1.5">
-            タイプ <span className="text-red-400">*</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {(Object.keys(WINE_TYPE_LABELS) as WineType[]).map((t) => (
-              <button key={t} onClick={() => setType(t)}
-                className={`px-3 py-1.5 text-xs rounded-full border transition-colors flex items-center gap-1.5 ${
-                  type === t ? "border-[#722f37] bg-[#722f37]/5 text-[#722f37] font-medium" : "border-gray-200 text-gray-500"
-                }`}>
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: WINE_TYPE_COLORS[t] }} />
-                {WINE_TYPE_LABELS[t].ja}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Country + Region */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
-              原産国 <span className="text-red-400">*</span>
+          {/* Producer */}
+          <div className="mb-5">
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+              生産者名 <span className="text-[#561922]">*</span>
             </label>
-            <select value={country} onChange={(e) => { setCountry(e.target.value); setRegion(""); setSubRegion(""); setVillage(""); }} className={selectCls}>
-              <option value="">選択</option>
-              {WINE_COUNTRIES.map((c) => (
-                <option key={c.code} value={c.name}>{c.nameJa}</option>
-              ))}
-            </select>
+            <input
+              type="text"
+              value={producer}
+              onChange={(e) => setProducer(e.target.value)}
+              placeholder="Chateau Margaux"
+              className={`${underlineInput} font-headline italic`}
+            />
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">ヴィンテージ</label>
-            <input type="number" value={vintage} onChange={(e) => setVintage(e.target.value)}
-              placeholder="2020" className={inputCls} />
-          </div>
-        </div>
 
-        {/* Region + Sub-Region + Village */}
-        {regions.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
+          {/* Wine Name + Vintage */}
+          <div className="grid grid-cols-3 gap-4 mb-5">
+            <div className="col-span-2">
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                ワイン名 / キュヴェ
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Les Forts de Latour"
+                className={`${underlineInput} font-headline`}
+              />
+            </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">地域</label>
-              <select value={region} onChange={(e) => { setRegion(e.target.value); setSubRegion(""); setVillage(""); setAromasInitialized(false); setPalateInitialized(false); }} className={selectCls}>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                ヴィンテージ
+              </label>
+              <input
+                type="number"
+                value={vintage}
+                onChange={(e) => setVintage(e.target.value)}
+                placeholder="2020"
+                className={`${underlineInput} font-headline text-center`}
+              />
+            </div>
+          </div>
+
+          {/* Type selector - pills */}
+          <div className="mb-5">
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-2.5">
+              タイプ <span className="text-[#561922]">*</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(WINE_TYPE_LABELS) as WineType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setType(t)}
+                  className={`px-4 py-2 text-xs rounded-full border transition-all flex items-center gap-2 ${
+                    type === t
+                      ? "border-[#561922] bg-[#561922] text-white shadow-sm"
+                      : "border-[#d8c1c2]/40 text-[#534343] hover:border-[#561922]/40"
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${type === t ? "ring-1 ring-white/50" : ""}`}
+                    style={{ backgroundColor: WINE_TYPE_COLORS[t] }}
+                  />
+                  {WINE_TYPE_LABELS[t].ja}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Country + Region */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                原産国 <span className="text-[#561922]">*</span>
+              </label>
+              <select
+                value={country}
+                onChange={(e) => { setCountry(e.target.value); setRegion(""); setSubRegion(""); setVillage(""); }}
+                className={underlineSelect}
+              >
                 <option value="">選択</option>
-                {regions.map((r) => <option key={r.name} value={r.name}>{r.nameJa}</option>)}
+                {WINE_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.name}>{c.nameJa}</option>
+                ))}
               </select>
             </div>
-            {subRegions.length > 0 && (
+            {regions.length > 0 ? (
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">サブ地域</label>
-                <select value={subRegion} onChange={(e) => setSubRegion(e.target.value)} className={selectCls}>
+                <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                  地域
+                </label>
+                <select
+                  value={region}
+                  onChange={(e) => { setRegion(e.target.value); setSubRegion(""); setVillage(""); setAromasInitialized(false); setPalateInitialized(false); }}
+                  className={underlineSelect}
+                >
                   <option value="">選択</option>
-                  {subRegions.map((sr) => <option key={sr} value={sr}>{sr}</option>)}
+                  {regions.map((r) => <option key={r.name} value={r.name}>{r.nameJa}</option>)}
                 </select>
+              </div>
+            ) : (
+              <div>
+                <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                  地域
+                </label>
+                <input
+                  type="text"
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                  placeholder="地域名"
+                  className={underlineInput}
+                />
               </div>
             )}
           </div>
-        )}
 
-        {/* Village */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">村名 / コミューン</label>
-          <input type="text" value={village} onChange={(e) => setVillage(e.target.value)}
-            placeholder="例: Pauillac, Chambolle-Musigny" className={inputCls} />
-        </div>
+          {/* Sub-Region */}
+          {subRegions.length > 0 && (
+            <div className="mb-5">
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                サブ地域
+              </label>
+              <select
+                value={subRegion}
+                onChange={(e) => setSubRegion(e.target.value)}
+                className={underlineSelect}
+              >
+                <option value="">選択</option>
+                {subRegions.map((sr) => <option key={sr} value={sr}>{sr}</option>)}
+              </select>
+            </div>
+          )}
 
-        {/* Grapes with master suggestions */}
-        <div className="relative">
-          <label className="text-sm font-medium text-gray-700 block mb-1">ブドウ品種</label>
-          <div className="flex gap-2">
-            <input type="text" value={grapes}
-              onChange={(e) => { setGrapes(e.target.value); setAromasInitialized(false); setPalateInitialized(false); }}
-              placeholder="例: Cabernet Sauvignon, Merlot" className={`${inputCls} flex-1`} />
-            <button onClick={() => setShowGrapeSuggestions(!showGrapeSuggestions)}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-gray-500 text-xs hover:bg-gray-50">
-              一覧
+          {/* Village */}
+          <div className="mb-5">
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+              村名 / コミューン
+            </label>
+            <input
+              type="text"
+              value={village}
+              onChange={(e) => setVillage(e.target.value)}
+              placeholder="Pauillac, Chambolle-Musigny"
+              className={underlineInput}
+            />
+          </div>
+
+          {/* Grapes with master suggestions */}
+          <div className="relative mb-5">
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+              ブドウ品種
+            </label>
+            <div className="flex gap-2 items-end">
+              <input
+                type="text"
+                value={grapes}
+                onChange={(e) => { setGrapes(e.target.value); setAromasInitialized(false); setPalateInitialized(false); }}
+                placeholder="Cabernet Sauvignon, Merlot"
+                className={`${underlineInput} flex-1`}
+              />
+              <button
+                onClick={() => setShowGrapeSuggestions(!showGrapeSuggestions)}
+                className="pb-2.5 text-[#534343]/50 hover:text-[#561922] transition-colors"
+              >
+                <span className="material-symbols-outlined text-xl">format_list_bulleted</span>
+              </button>
+            </div>
+            {/* Normalized display */}
+            {grapeList.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {grapeList.map((g, i) => {
+                  const grape = findGrape(g);
+                  return (
+                    <span
+                      key={i}
+                      className={`px-2.5 py-0.5 text-[10px] rounded-full ${
+                        grape
+                          ? "bg-[#561922]/8 text-[#561922] border border-[#561922]/15"
+                          : "bg-[#f6f3ed] text-[#534343] border border-[#d8c1c2]/20"
+                      }`}
+                    >
+                      {grape ? grape.nameJa : g}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {/* Suggestion dropdown */}
+            {showGrapeSuggestions && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-[#d8c1c2]/30 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                <div className="sticky top-0 bg-white p-3 border-b border-[#d8c1c2]/20">
+                  <input
+                    type="text"
+                    value={grapeFilter}
+                    onChange={(e) => setGrapeFilter(e.target.value)}
+                    placeholder="品種名で絞り込み..."
+                    className="w-full border border-[#d8c1c2]/30 rounded-xl px-3 py-2 text-xs bg-[#fcf9f3] focus:outline-none focus:border-[#561922]"
+                    autoFocus
+                  />
+                </div>
+                {filteredSuggestions.slice(0, 30).map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => addGrapeFromSuggestion(s.id)}
+                    className="w-full text-left px-4 py-2.5 text-xs hover:bg-[#fcf9f3] border-b border-[#d8c1c2]/10 text-[#1c1c18]"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Appellation + Classification */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                格付け
+              </label>
+              <input
+                type="text"
+                value={appellation}
+                onChange={(e) => setAppellation(e.target.value)}
+                placeholder="AOC, DOCG"
+                className={underlineInput}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                品質分類
+              </label>
+              <input
+                type="text"
+                value={classification}
+                onChange={(e) => setClassification(e.target.value)}
+                placeholder="Grand Cru"
+                className={underlineInput}
+              />
+            </div>
+          </div>
+
+          {/* ABV + Volume + Price */}
+          <div className="grid grid-cols-3 gap-4 mb-3">
+            <div>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                ABV%
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                value={abv}
+                onChange={(e) => setAbv(e.target.value)}
+                placeholder="13.5"
+                className={`${underlineInput} text-center`}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                容量ml
+              </label>
+              <input
+                type="number"
+                value={volume}
+                onChange={(e) => setVolume(e.target.value)}
+                placeholder="750"
+                className={`${underlineInput} text-center`}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                価格
+              </label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="3,000"
+                className={`${underlineInput} text-center`}
+              />
+            </div>
+          </div>
+          {priceHint && !visionResult?.knowledge.description && (
+            <p className="text-[10px] text-[#534343]/50 mb-4">
+              <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">info</span>
+              相場: {priceHint}
+            </p>
+          )}
+
+          {/* Aging + Taste Type */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                熟成表記
+              </label>
+              <input
+                type="text"
+                value={aging}
+                onChange={(e) => setAging(e.target.value)}
+                placeholder="Reserva"
+                className={underlineInput}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+                味わいタイプ
+              </label>
+              <input
+                type="text"
+                value={tasteType}
+                onChange={(e) => setTasteType(e.target.value)}
+                placeholder="辛口, Brut"
+                className={underlineInput}
+              />
+            </div>
+          </div>
+
+          {/* Bottler + Certifications + Producer URL */}
+          <div className="mb-5">
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+              瓶詰め元
+            </label>
+            <input
+              type="text"
+              value={bottler}
+              onChange={(e) => setBottler(e.target.value)}
+              placeholder="Mis en bouteille au chateau"
+              className={underlineInput}
+            />
+          </div>
+          <div className="mb-5">
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+              認証・受賞
+            </label>
+            <input
+              type="text"
+              value={certifications}
+              onChange={(e) => setCertifications(e.target.value)}
+              placeholder="Bio, 金賞（カンマ区切り）"
+              className={underlineInput}
+            />
+          </div>
+          <div className="mb-2">
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label block mb-1">
+              生産者HP
+            </label>
+            <input
+              type="url"
+              value={producerUrl}
+              onChange={(e) => setProducerUrl(e.target.value)}
+              placeholder="https://..."
+              className={underlineInput}
+            />
+          </div>
+
+          {/* ---- TASTE PROFILE SECTION ---- */}
+          <SectionDivider label="Taste Profile" />
+
+          {/* Radar Chart */}
+          <div className="flex justify-center mb-3">
+            <RadarChart
+              data={radarData}
+              baseData={radarBaseData}
+              size={200}
+              interactive={true}
+              onChange={(index, value) => palateSetters[index](value)}
+            />
+          </div>
+          {radarBaseData && (
+            <div className="flex items-center justify-center gap-4 mb-4 text-[10px] text-[#534343]/60">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-4 h-0.5 bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
+                品種の特徴
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
+                このワイン
+              </span>
+            </div>
+          )}
+
+          {/* Palate sliders */}
+          <div className="space-y-4 mb-2">
+            {Object.entries(PALATE_LABELS).map(([key, meta]) => {
+              if (key === "tannin" && !showTannin) return null;
+              const palateState: Record<string, { value: PalateLevel; set: (v: PalateLevel) => void }> = {
+                sweetness: { value: sweetness, set: setSweetness },
+                acidity: { value: acidity, set: setAcidity },
+                tannin: { value: tannin, set: setTannin },
+                body: { value: body, set: setBody },
+                finish: { value: finish, set: setFinish },
+              };
+              const state = palateState[key];
+              return (
+                <div key={key}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-[#1c1c18]">{meta.label}</span>
+                    <span className="text-[10px] text-[#561922] font-medium">{meta.levels[state.value - 1]}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={5}
+                    value={state.value}
+                    onChange={(e) => state.set(parseInt(e.target.value) as PalateLevel)}
+                    className="w-full accent-[#561922]"
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={resetPalateDefaults}
+              className="flex items-center gap-1 text-[10px] text-[#534343]/50 hover:text-[#561922] transition-colors"
+            >
+              <span className="material-symbols-outlined text-xs">restart_alt</span>
+              リセット
             </button>
           </div>
-          {/* Normalized display */}
-          {grapeList.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {grapeList.map((g, i) => {
-                const grape = findGrape(g);
+
+          {/* ---- AROMA SECTION ---- */}
+          <SectionDivider label="Aroma" />
+
+          {/* Selected aromas with images */}
+          {selectedAromas.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {selectedAromas.map((a) => {
+                const visual = getAromaVisual(a);
                 return (
-                  <span key={i} className={`px-2 py-0.5 text-[10px] rounded-full ${grape ? "bg-[#722f37]/10 text-[#722f37]" : "bg-gray-100 text-gray-500"}`}>
-                    {grape ? `${grape.nameJa}` : g}
-                  </span>
+                  <button
+                    key={a}
+                    onClick={() => toggleAroma(a)}
+                    className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 text-xs rounded-full bg-[#561922] text-white"
+                  >
+                    <span className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-white/20 flex items-center justify-center">
+                      {visual.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={visual.imageUrl}
+                          alt={a}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.textContent = visual.emoji; }}
+                        />
+                      ) : (
+                        <span className="text-sm">{visual.emoji}</span>
+                      )}
+                    </span>
+                    {a}
+                    <span className="material-symbols-outlined text-[14px] ml-0.5 opacity-70">close</span>
+                  </button>
                 );
               })}
             </div>
           )}
-          {/* Suggestion dropdown */}
-          {showGrapeSuggestions && (
-            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-              <div className="sticky top-0 bg-white p-2 border-b">
-                <input type="text" value={grapeFilter} onChange={(e) => setGrapeFilter(e.target.value)}
-                  placeholder="品種名で絞り込み..." className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs" autoFocus />
-              </div>
-              {filteredSuggestions.slice(0, 30).map((s) => (
-                <button key={s.id} onClick={() => addGrapeFromSuggestion(s.id)}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-50">
-                  {s.label}
-                </button>
+          {selectedAromas.length > 0 && (
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[9px] text-[#534343]/40">{AROMA_IMAGE_COPYRIGHT}</p>
+              <button
+                onClick={resetAromaDefaults}
+                className="flex items-center gap-1 text-[10px] text-[#534343]/50 hover:text-[#561922] transition-colors"
+              >
+                <span className="material-symbols-outlined text-xs">restart_alt</span>
+                リセット
+              </button>
+            </div>
+          )}
+
+          {/* Toggle aroma picker */}
+          <button
+            onClick={() => setShowAromaPicker(!showAromaPicker)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-[#d8c1c2]/30 text-xs text-[#534343] hover:bg-[#f6f3ed] transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">
+              {showAromaPicker ? "expand_less" : "expand_more"}
+            </span>
+            {showAromaPicker ? "アロマホイールを閉じる" : "アロマホイールから追加"}
+          </button>
+
+          {showAromaPicker && (
+            <div className="mt-3 space-y-2">
+              {AROMA_DATA.map((cat) => (
+                <div key={cat.name.en} className="bg-[#fcf9f3] rounded-2xl border border-[#d8c1c2]/15 overflow-hidden">
+                  <button
+                    onClick={() => setExpandedCategory(expandedCategory === cat.name.en ? null : cat.name.en)}
+                    className="w-full flex items-center justify-between p-3.5 text-left"
+                  >
+                    <span className="text-sm text-[#1c1c18]">
+                      {cat.name.ja} <span className="text-[10px] text-[#534343]/40 ml-1">{cat.name.en}</span>
+                    </span>
+                    <span className="material-symbols-outlined text-base text-[#534343]/40">
+                      {expandedCategory === cat.name.en ? "expand_less" : "expand_more"}
+                    </span>
+                  </button>
+                  {expandedCategory === cat.name.en && (
+                    <div className="px-3.5 pb-3.5 space-y-3">
+                      {cat.subcategories.map((sub) => (
+                        <div key={sub.name.en}>
+                          <div className="text-[10px] tracking-[0.1em] uppercase text-[#c9a84c] mb-2">{sub.name.ja}</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {sub.descriptors.map((d) => {
+                              const isSelected = selectedAromas.includes(d.ja);
+                              const isGrapeBase = grapeBaseAromas.includes(d.ja);
+                              const vis = getAromaVisual(d.ja);
+                              return (
+                                <button
+                                  key={d.en}
+                                  onClick={() => toggleAroma(d.ja)}
+                                  className={`flex items-center gap-1 pl-1 pr-2.5 py-1 text-xs rounded-full border transition-colors ${
+                                    isSelected
+                                      ? "bg-[#561922] text-white border-[#561922]"
+                                      : isGrapeBase
+                                        ? "bg-[#c9a84c]/10 text-[#755b00] border-[#c9a84c]/30"
+                                        : "bg-white text-[#534343] border-[#d8c1c2]/30 hover:border-[#561922]/40"
+                                  }`}
+                                >
+                                  <span className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 bg-white/20 flex items-center justify-center text-[10px]">
+                                    {vis.imageUrl ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={vis.imageUrl}
+                                        alt={d.ja}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.textContent = vis.emoji; }}
+                                      />
+                                    ) : (
+                                      vis.emoji
+                                    )}
+                                  </span>
+                                  {d.ja}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
-        </div>
 
-        {/* Appellation + Classification */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">格付け</label>
-            <input type="text" value={appellation} onChange={(e) => setAppellation(e.target.value)}
-              placeholder="AOC, DOCG" className={inputCls} />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">品質分類</label>
-            <input type="text" value={classification} onChange={(e) => setClassification(e.target.value)}
-              placeholder="Grand Cru" className={inputCls} />
-          </div>
-        </div>
+          {/* ---- TASTING NOTE SECTION ---- */}
+          <SectionDivider label="Tasting Note" />
 
-        {/* ABV + Volume + Price */}
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">ABV%</label>
-            <input type="number" step="0.1" value={abv} onChange={(e) => setAbv(e.target.value)}
-              placeholder="13.5" className={inputCls} />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">容量ml</label>
-            <input type="number" value={volume} onChange={(e) => setVolume(e.target.value)}
-              placeholder="750" className={inputCls} />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">価格¥</label>
-            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)}
-              placeholder="3000" className={inputCls} />
-          </div>
-        </div>
-        {priceHint && !visionResult?.knowledge.description && (
-          <p className="text-[10px] text-gray-400">相場: {priceHint}</p>
-        )}
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="自由にメモを記入..."
+            className="notebook-line w-full bg-transparent border-0 px-1 py-2 text-sm text-[#1c1c18] placeholder:text-[#534343]/30 focus:outline-none resize-none min-h-[100px] font-headline"
+          />
 
-        {/* Aging + Taste Type */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">熟成表記</label>
-            <input type="text" value={aging} onChange={(e) => setAging(e.target.value)}
-              placeholder="Reserva" className={inputCls} />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">味わいタイプ</label>
-            <input type="text" value={tasteType} onChange={(e) => setTasteType(e.target.value)}
-              placeholder="辛口, Brut" className={inputCls} />
-          </div>
-        </div>
-
-        {/* Bottler + Certifications + Producer URL */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">瓶詰め元</label>
-          <input type="text" value={bottler} onChange={(e) => setBottler(e.target.value)}
-            placeholder="Mis en bouteille au château" className={inputCls} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">認証・受賞</label>
-          <input type="text" value={certifications} onChange={(e) => setCertifications(e.target.value)}
-            placeholder="Bio, 金賞（カンマ区切り）" className={inputCls} />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">生産者HP</label>
-          <input type="url" value={producerUrl} onChange={(e) => setProducerUrl(e.target.value)}
-            placeholder="https://..." className={inputCls} />
-        </div>
-      </div>
-
-      {/* === RATING === */}
-      <div className="mb-6">
-        <label className="text-sm font-medium text-gray-700 block mb-1.5">
-          評価 <span className="text-red-400">*</span>
-        </label>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((v) => (
-            <button key={v} onClick={() => setRating(v)}>
-              <Star size={28} className={v <= rating ? "fill-[#c9a84c] text-[#c9a84c]" : "text-gray-200"} />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* === AROMA SECTION === */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">香り（アロマ）</span>
-          <button onClick={resetAromaDefaults}
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#722f37]">
-            <RotateCcw size={12} /> リセット
-          </button>
-        </div>
-
-        {/* Always-visible selected aromas with images */}
-        {selectedAromas.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {selectedAromas.map((a) => {
-              const visual = getAromaVisual(a);
-              return (
-                <button key={a} onClick={() => toggleAroma(a)}
-                  className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 text-xs rounded-full bg-[#722f37] text-white group relative overflow-hidden">
-                  <span className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-white/20 flex items-center justify-center">
-                    {visual.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={visual.imageUrl} alt={a} className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.textContent = visual.emoji; }} />
-                    ) : (
-                      <span className="text-sm">{visual.emoji}</span>
-                    )}
-                  </span>
-                  {a} ✕
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {selectedAromas.length > 0 && (
-          <p className="text-[9px] text-gray-300 mb-1">📷 {AROMA_IMAGE_COPYRIGHT}</p>
-        )}
-
-        {/* Toggle aroma picker */}
-        <button onClick={() => setShowAromaPicker(!showAromaPicker)}
-          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-gray-200 text-xs text-gray-500 hover:bg-gray-50">
-          {showAromaPicker ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          {showAromaPicker ? "アロマホイールを閉じる" : "アロマホイールから追加"}
-        </button>
-
-        {showAromaPicker && (
-          <div className="mt-2 space-y-2">
-            {AROMA_DATA.map((cat) => (
-              <div key={cat.name.en} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                <button onClick={() => setExpandedCategory(expandedCategory === cat.name.en ? null : cat.name.en)}
-                  className="w-full flex items-center justify-between p-3 text-left">
-                  <span className="font-medium text-gray-800 text-sm">
-                    {cat.name.ja} <span className="text-xs text-gray-400">{cat.name.en}</span>
-                  </span>
-                  {expandedCategory === cat.name.en ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                </button>
-                {expandedCategory === cat.name.en && (
-                  <div className="px-3 pb-3 space-y-3">
-                    {cat.subcategories.map((sub) => (
-                      <div key={sub.name.en}>
-                        <div className="text-xs font-medium text-gray-500 mb-1.5">{sub.name.ja}</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {sub.descriptors.map((d) => {
-                            const isSelected = selectedAromas.includes(d.ja);
-                            const isGrapeBase = grapeBaseAromas.includes(d.ja);
-                            const vis = getAromaVisual(d.ja);
-                            return (
-                              <button key={d.en} onClick={() => toggleAroma(d.ja)}
-                                className={`flex items-center gap-1 pl-1 pr-2.5 py-1 text-xs rounded-full border transition-colors ${
-                                  isSelected ? "bg-[#722f37] text-white border-[#722f37]"
-                                    : isGrapeBase ? "bg-[#d4a574]/10 text-[#d4a574] border-[#d4a574]/40"
-                                      : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#722f37]/50"
-                                }`}>
-                                <span className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 bg-white/20 flex items-center justify-center text-[10px]">
-                                  {vis.imageUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={vis.imageUrl} alt={d.ja} className="w-full h-full object-cover"
-                                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.textContent = vis.emoji; }} />
-                                  ) : (
-                                    vis.emoji
-                                  )}
-                                </span>
-                                {d.ja}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* === PALATE SECTION (always visible) === */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">味わい</span>
-          <button onClick={resetPalateDefaults}
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#722f37]">
-            <RotateCcw size={12} /> リセット
-          </button>
-        </div>
-
-        <div className="flex justify-center mb-2">
-          <RadarChart data={radarData} baseData={radarBaseData} size={200} interactive={true}
-            onChange={(index, value) => palateSetters[index](value)} />
-        </div>
-        {radarBaseData && (
-          <div className="flex items-center justify-center gap-4 mb-2 text-[10px] text-gray-400">
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-4 h-0.5 bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
-              品種の特徴
+          {/* ---- STAR RATING ---- */}
+          <div className="flex items-center justify-between mt-4 mb-2">
+            <span className="text-[10px] tracking-[0.15em] uppercase text-[#534343]/60 font-label">
+              評価 <span className="text-[#561922]">*</span>
             </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
-              このワイン
-            </span>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((v) => (
+                <button key={v} onClick={() => setRating(v)} className="p-0.5">
+                  <span
+                    className={`material-symbols-outlined text-[28px] transition-colors ${
+                      v <= rating ? "text-[#c9a84c]" : "text-[#d8c1c2]/40"
+                    }`}
+                    style={v <= rating ? { fontVariationSettings: "'FILL' 1" } : {}}
+                  >
+                    star
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        )}
 
-        <div className="space-y-3">
-          {Object.entries(PALATE_LABELS).map(([key, meta]) => {
-            if (key === "tannin" && !showTannin) return null;
-            const palateState: Record<string, { value: PalateLevel; set: (v: PalateLevel) => void }> = {
-              sweetness: { value: sweetness, set: setSweetness },
-              acidity: { value: acidity, set: setAcidity },
-              tannin: { value: tannin, set: setTannin },
-              body: { value: body, set: setBody },
-              finish: { value: finish, set: setFinish },
-            };
-            const state = palateState[key];
-            return (
-              <div key={key}>
-                <div className="flex justify-between items-center mb-0.5">
-                  <span className="text-xs font-medium text-gray-700">{meta.label}</span>
-                  <span className="text-[10px] text-[#722f37] font-medium">{meta.levels[state.value - 1]}</span>
-                </div>
-                <input type="range" min={1} max={5} value={state.value}
-                  onChange={(e) => state.set(parseInt(e.target.value) as PalateLevel)}
-                  className="w-full accent-[#722f37]" />
-              </div>
-            );
-          })}
         </div>
       </div>
 
-      {/* === TASTING NOTES === */}
-      <div className="mb-4">
-        <label className="text-sm font-medium text-gray-700 block mb-1">テイスティングノート</label>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-          placeholder="自由にメモを記入..." className={`${inputCls} h-20 resize-none`} />
-      </div>
-
-      {/* === REGION GUIDE === */}
+      {/* ===== REGION GUIDE (outside ledger card) ===== */}
       {(regionGuide || loadingGuide) && (
-        <div className="mb-6">
+        <div className="mx-4 mb-6">
           {/* Header with refresh button */}
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-gray-900 flex items-center gap-1.5 text-sm">
-              📍 {regionGuide?.regionName || region}の産地ガイド
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="font-headline text-sm text-[#1c1c18] flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-[#c9a84c]">pin_drop</span>
+              {regionGuide?.regionName || region}の産地ガイド
             </h3>
             <button
               onClick={handleRefreshGuide}
               disabled={loadingGuide}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#722f37] disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1 text-[10px] text-[#534343]/50 hover:text-[#561922] disabled:opacity-50 transition-colors"
             >
-              <RefreshCw size={12} className={loadingGuide ? "animate-spin" : ""} />
+              <span className={`material-symbols-outlined text-xs ${loadingGuide ? "animate-spin" : ""}`}>refresh</span>
               AIで再検索
             </button>
           </div>
 
           {loadingGuide ? (
-            <div className="flex items-center justify-center gap-2 text-xs text-amber-600 py-12 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl">
-              <Loader2 size={14} className="animate-spin" /> 産地情報を取得中...
+            <div className="flex items-center justify-center gap-2 text-xs text-[#755b00] py-12 bg-[#c9a84c]/5 border border-[#c9a84c]/15 rounded-2xl">
+              <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+              産地情報を取得中...
             </div>
           ) : regionGuide && (
             <div className="space-y-3">
               {/* Hero image */}
-              <div className="w-full h-44 rounded-xl overflow-hidden relative">
+              <div className="w-full h-44 rounded-2xl overflow-hidden relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={getRegionImage(region)}
@@ -1141,29 +1402,29 @@ export default function NewWinePage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-3 left-4 text-white">
-                  <div className="text-lg font-bold">{regionGuide.regionName || region}</div>
+                  <div className="text-lg font-headline">{regionGuide.regionName || region}</div>
                   <div className="text-xs text-white/80">{region}</div>
                 </div>
               </div>
 
               {/* Guide section cards */}
               {[
-                { key: "terroir", emoji: "🌍", title: "テロワール" },
-                { key: "climate", emoji: "🌤️", title: "気候" },
-                { key: "history", emoji: "📜", title: "歴史" },
-                { key: "keyStyles", emoji: "🍷", title: "主要スタイル" },
-                { key: "topProducers", emoji: "🏆", title: "著名な生産者" },
-                { key: "foodPairing", emoji: "🍽️", title: "フードペアリング" },
-                { key: "visitTips", emoji: "✈️", title: "旅行ガイド" },
-                { key: "regulations", emoji: "📋", title: "法規・規定" },
-                { key: "sommNotes", emoji: "📝", title: "ソムリエ試験ポイント" },
-                { key: "vintageGuide", emoji: "📅", title: "ヴィンテージガイド" },
-                { key: "funFact", emoji: "💡", title: "豆知識" },
-              ].map(({ key, emoji, title }) => {
+                { key: "terroir", icon: "public", title: "テロワール" },
+                { key: "climate", icon: "wb_sunny", title: "気候" },
+                { key: "history", icon: "history_edu", title: "歴史" },
+                { key: "keyStyles", icon: "wine_bar", title: "主要スタイル" },
+                { key: "topProducers", icon: "emoji_events", title: "著名な生産者" },
+                { key: "foodPairing", icon: "restaurant", title: "フードペアリング" },
+                { key: "visitTips", icon: "flight", title: "旅行ガイド" },
+                { key: "regulations", icon: "gavel", title: "法規・規定" },
+                { key: "sommNotes", icon: "school", title: "ソムリエ試験ポイント" },
+                { key: "vintageGuide", icon: "calendar_month", title: "ヴィンテージガイド" },
+                { key: "funFact", icon: "lightbulb", title: "豆知識" },
+              ].map(({ key, icon, title }) => {
                 const text = getGuideText(regionGuide[key]);
                 if (!text) return null;
                 return (
-                  <div key={key} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div key={key} className="bg-white rounded-2xl border border-[#d8c1c2]/15 shadow-sm overflow-hidden">
                     <div className="flex">
                       {/* Section image */}
                       <div className="w-24 min-h-[80px] flex-shrink-0 relative">
@@ -1176,11 +1437,12 @@ export default function NewWinePage() {
                         />
                       </div>
                       {/* Text content */}
-                      <div className="flex-1 p-3">
-                        <div className="font-medium text-gray-900 text-xs mb-1 flex items-center gap-1">
-                          {emoji} {title}
+                      <div className="flex-1 p-3.5">
+                        <div className="text-xs text-[#1c1c18] mb-1 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-sm text-[#c9a84c]">{icon}</span>
+                          <span className="font-medium">{title}</span>
                         </div>
-                        <p className="text-xs text-gray-600 leading-relaxed">{text}</p>
+                        <p className="text-xs text-[#534343] leading-relaxed">{text}</p>
                       </div>
                     </div>
                   </div>
@@ -1188,27 +1450,32 @@ export default function NewWinePage() {
               })}
 
               {/* Copyright notice */}
-              <p className="text-[10px] text-gray-400 text-center pt-1">
-                📷 Photos: Unsplash / CC0
+              <p className="text-[10px] text-[#534343]/40 text-center pt-1">
+                Photos: Unsplash / CC0
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* === TOUR SEARCH SECTION === */}
+      {/* ===== TOUR SEARCH SECTION ===== */}
       {(country || region) && (
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-gray-900 text-sm flex items-center gap-1.5">
-              ✈️ 関連する旅行プラン
+        <div className="mx-4 mb-6">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="font-headline text-sm text-[#1c1c18] flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-[#c9a84c]">flight</span>
+              関連する旅行プラン
             </h3>
             <button
               onClick={handleTourSearch}
               disabled={searchingTours}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[10px] font-medium text-white bg-[#561922] rounded-full hover:bg-[#722f37] transition-colors disabled:opacity-50"
             >
-              {searchingTours ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+              {searchingTours ? (
+                <span className="material-symbols-outlined text-xs animate-spin">progress_activity</span>
+              ) : (
+                <span className="material-symbols-outlined text-xs">search</span>
+              )}
               {searchingTours ? "検索中..." : "ツアーを検索"}
             </button>
           </div>
@@ -1217,9 +1484,10 @@ export default function NewWinePage() {
             <div className="space-y-3">
               {/* Travel tips */}
               {tourTravelTips && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-                  <p className="text-xs text-blue-800 leading-relaxed">
-                    💡 {tourTravelTips}
+                <div className="bg-[#c9a84c]/8 border border-[#c9a84c]/20 rounded-2xl p-4">
+                  <p className="text-xs text-[#755b00] leading-relaxed">
+                    <span className="material-symbols-outlined text-xs align-middle mr-1">lightbulb</span>
+                    {tourTravelTips}
                   </p>
                 </div>
               )}
@@ -1227,51 +1495,70 @@ export default function NewWinePage() {
               {/* Tour cards */}
               {tours.map((tour, i) => {
                 const isSaved = savedTours.some((t) => t.title === tour.title);
-                const typeEmoji: Record<string, string> = {
-                  winery_visit: "🏰",
-                  wine_tour: "🚌",
-                  food_pairing: "🍽️",
-                  harvest_experience: "🍇",
-                  city_tour: "🏙️",
-                  accommodation: "🏨",
+                const typeIcon: Record<string, string> = {
+                  winery_visit: "castle",
+                  wine_tour: "directions_bus",
+                  food_pairing: "restaurant",
+                  harvest_experience: "agriculture",
+                  city_tour: "location_city",
+                  accommodation: "hotel",
                 };
                 return (
-                  <div key={i} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isSaved ? "border-blue-400 ring-1 ring-blue-200" : "border-gray-100"}`}>
-                    <div className="p-3">
+                  <div
+                    key={i}
+                    className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${
+                      isSaved ? "border-[#561922]/40 ring-1 ring-[#561922]/10" : "border-[#d8c1c2]/15"
+                    }`}
+                  >
+                    <div className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 text-sm flex items-center gap-1.5">
-                            <span>{typeEmoji[tour.type] || "🗺️"}</span>
+                          <h4 className="font-medium text-[#1c1c18] text-sm flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-base text-[#c9a84c]">
+                              {typeIcon[tour.type] || "map"}
+                            </span>
                             {tour.title}
                           </h4>
-                          <div className="flex flex-wrap gap-1.5 mt-1">
-                            <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.location}</span>
-                            <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.duration}</span>
-                            {tour.priceRange && <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.priceRange}</span>}
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            <span className="text-[10px] text-[#534343] bg-[#f6f3ed] px-2 py-0.5 rounded-full">{tour.location}</span>
+                            <span className="text-[10px] text-[#534343] bg-[#f6f3ed] px-2 py-0.5 rounded-full">{tour.duration}</span>
+                            {tour.priceRange && (
+                              <span className="text-[10px] text-[#534343] bg-[#f6f3ed] px-2 py-0.5 rounded-full">{tour.priceRange}</span>
+                            )}
                           </div>
                         </div>
                         <button
                           onClick={() => toggleSaveTour(tour)}
-                          className={`flex-shrink-0 px-2.5 py-1 text-[10px] rounded-lg font-medium transition-colors ${
-                            isSaved ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500"
+                          className={`flex-shrink-0 px-3 py-1.5 text-[10px] rounded-full font-medium transition-colors ${
+                            isSaved
+                              ? "bg-[#561922] text-white"
+                              : "bg-[#f6f3ed] text-[#534343] hover:bg-[#561922]/10 hover:text-[#561922]"
                           }`}
                         >
-                          {isSaved ? "✓ 保存済み" : "保存"}
+                          {isSaved ? (
+                            <><span className="material-symbols-outlined text-[10px] align-middle mr-0.5">check</span> 保存済み</>
+                          ) : "保存"}
                         </button>
                       </div>
-                      <p className="text-xs text-gray-600 leading-relaxed mb-2">{tour.description}</p>
+                      <p className="text-xs text-[#534343] leading-relaxed mb-2">{tour.description}</p>
                       {tour.highlights && tour.highlights.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                           {tour.highlights.map((h, j) => (
-                            <span key={j} className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full">{h}</span>
+                            <span key={j} className="text-[10px] px-2 py-0.5 bg-[#c9a84c]/10 text-[#755b00] rounded-full">{h}</span>
                           ))}
                         </div>
                       )}
                       {tour.bestSeason && (
-                        <p className="text-[10px] text-gray-400">🗓️ ベストシーズン: {tour.bestSeason}</p>
+                        <p className="text-[10px] text-[#534343]/60">
+                          <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">calendar_month</span>
+                          ベストシーズン: {tour.bestSeason}
+                        </p>
                       )}
                       {tour.bookingTip && (
-                        <p className="text-[10px] text-amber-600 mt-1">💡 {tour.bookingTip}</p>
+                        <p className="text-[10px] text-[#755b00] mt-1">
+                          <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">lightbulb</span>
+                          {tour.bookingTip}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -1280,19 +1567,23 @@ export default function NewWinePage() {
 
               {/* Nearby attractions */}
               {tourNearby.length > 0 && (
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <h4 className="text-xs font-medium text-gray-700 mb-1.5">🏛️ 周辺の観光名所</h4>
+                <div className="bg-[#f6f3ed] rounded-2xl p-4">
+                  <h4 className="text-xs font-medium text-[#1c1c18] mb-2 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-[#c9a84c]">account_balance</span>
+                    周辺の観光名所
+                  </h4>
                   <div className="flex flex-wrap gap-1.5">
                     {tourNearby.map((a, i) => (
-                      <span key={i} className="text-[10px] px-2 py-1 bg-white text-gray-600 rounded-full border border-gray-200">{a}</span>
+                      <span key={i} className="text-[10px] px-2.5 py-1 bg-white text-[#534343] rounded-full border border-[#d8c1c2]/20">{a}</span>
                     ))}
                   </div>
                 </div>
               )}
 
               {savedTours.length > 0 && (
-                <p className="text-[10px] text-blue-500 text-center">
-                  ✓ {savedTours.length}件のツアーが保存されます
+                <p className="text-[10px] text-[#561922] text-center">
+                  <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">check_circle</span>
+                  {savedTours.length}件のツアーが保存されます
                 </p>
               )}
             </div>
@@ -1300,12 +1591,17 @@ export default function NewWinePage() {
         </div>
       )}
 
-      {/* === SUBMIT === */}
-      <button onClick={handleSubmit} disabled={!canSubmit}
-        className="w-full py-3 rounded-xl bg-[#722f37] text-white font-medium hover:bg-[#5a252c] transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed">
-        <Check size={18} />
-        記録する
-      </button>
+      {/* ===== SUBMIT BUTTON ===== */}
+      <div className="px-5 pb-28">
+        <button
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          className="w-full py-4 rounded-full bg-[#561922] text-white font-headline text-sm tracking-wider hover:bg-[#722f37] transition-colors flex items-center justify-center gap-2.5 disabled:bg-[#d8c1c2]/40 disabled:text-[#534343]/40 disabled:cursor-not-allowed shadow-lg"
+        >
+          <span className="material-symbols-outlined text-lg">auto_stories</span>
+          この経験を綴る
+        </button>
+      </div>
     </div>
   );
 }

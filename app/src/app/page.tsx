@@ -2,10 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PlusCircle, Wine, MapPin, Star } from "lucide-react";
 import { WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS } from "@/lib/types";
 import { getWines, getProfile } from "@/lib/store";
-import { getCurrentRank, getNextRank, getRankProgress } from "@/lib/gamification";
+import {
+  getCurrentRank,
+  getNextRank,
+  getRankProgress,
+  getTotalBadgePoints,
+  getEarnedBadges,
+} from "@/lib/gamification";
 import { UserProfile } from "@/lib/types";
 
 export default function HomePage() {
@@ -17,167 +22,293 @@ export default function HomePage() {
     setProfile(getProfile());
   }, []);
 
-  const rank = profile ? getCurrentRank(profile.xp) : null;
-  const nextRank = profile ? getNextRank(profile.xp) : null;
-  const progress = profile ? getRankProgress(profile.xp) : 0;
+  const totalPoints = profile ? getTotalBadgePoints(profile, wines) : 0;
+  const rank = getCurrentRank(totalPoints);
+  const nextRank = getNextRank(totalPoints);
+  const progress = getRankProgress(totalPoints);
+  const earnedBadges = profile ? getEarnedBadges(profile, wines) : [];
 
   return (
-    <div className="px-4 pt-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Wine Mapper</h1>
-          <p className="text-sm text-gray-500">ワインで世界を旅しよう</p>
+    <div className="px-6 pt-8 space-y-12">
+      {/* TopAppBar */}
+      <header className="flex justify-between items-center">
+        <div className="flex flex-col">
+          <h1 className="font-headline font-bold tracking-tight text-2xl text-primary-container italic">
+            Wine Mapper
+          </h1>
+          <p className="text-[10px] font-label tracking-widest text-primary opacity-60 uppercase">
+            ワインで世界を旅しよう
+          </p>
         </div>
-        {rank && (
-          <div className="text-right">
-            <div className="text-lg">{rank.icon}</div>
-            <div className="text-xs text-gray-500">{rank.nameJa}</div>
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col items-end mr-2">
+            <span className="text-[10px] font-label text-secondary uppercase tracking-tighter">
+              Current Rank
+            </span>
+            <span className="text-sm font-headline font-bold text-primary">
+              {rank.nameJa}
+            </span>
           </div>
-        )}
-      </div>
+          <div className="relative w-12 h-12 flex items-center justify-center bg-surface-container-lowest rounded-full shadow-sm">
+            <span
+              className="material-symbols-outlined text-secondary text-3xl"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              workspace_premium
+            </span>
+            {earnedBadges.length > 0 && (
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full border-2 border-surface flex items-center justify-center">
+                <span className="text-[8px] text-white font-bold">
+                  {earnedBadges.length}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
 
-      {/* Stats Cards */}
+      {/* Experience Section */}
       {profile && (
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
-            <div className="text-2xl font-bold text-[#722f37]">
-              {profile.wineCount}
+        <section className="space-y-4">
+          <div className="flex justify-between items-end mb-2">
+            <div className="space-y-1">
+              <h2 className="text-xs font-label uppercase tracking-[0.2em] text-on-surface-variant">
+                Master Sommelier Path
+              </h2>
+              <p className="text-xl font-headline font-bold text-primary">
+                熟成の旅路
+              </p>
             </div>
-            <div className="text-xs text-gray-500">ワイン</div>
-          </div>
-          <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
-            <div className="text-2xl font-bold text-[#722f37]">
-              {profile.countriesExplored.length}
+            <div className="text-right">
+              <span className="text-lg font-headline font-bold text-secondary">
+                {totalPoints}
+              </span>
+              <span className="text-xs font-label text-on-surface-variant">
+                {nextRank ? ` / ${nextRank.minXp} pts` : " pts"}
+              </span>
             </div>
-            <div className="text-xs text-gray-500">カ国</div>
           </div>
-          <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
-            <div className="text-2xl font-bold text-[#722f37]">
-              {profile.grapesExplored.length}
-            </div>
-            <div className="text-xs text-gray-500">品種</div>
-          </div>
-        </div>
-      )}
-
-      {/* XP Progress */}
-      {profile && rank && (
-        <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              {rank.icon} {rank.nameJa}
-            </span>
-            <span className="text-xs text-gray-500">
-              {profile.xp} XP
-              {nextRank && ` / ${nextRank.minXp} XP`}
-            </span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-2">
+          <div className="relative h-1 w-full bg-surface-container-high overflow-hidden rounded-full">
             <div
-              className="bg-[#722f37] h-2 rounded-full transition-all duration-500"
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-secondary rounded-full shadow-[0_0_8px_rgba(201,168,76,0.4)] transition-all duration-700"
               style={{ width: `${progress}%` }}
             />
           </div>
-          {nextRank && (
-            <div className="text-xs text-gray-400 mt-1 text-right">
-              次: {nextRank.icon} {nextRank.nameJa}
-            </div>
-          )}
-        </div>
+        </section>
       )}
 
-      {/* Recent Wines */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-gray-800">最近のワイン</h2>
-        <Link
-          href="/wines/new"
-          className="flex items-center gap-1 text-sm text-[#722f37] font-medium"
-        >
-          <PlusCircle size={16} />
-          記録する
-        </Link>
-      </div>
+      {/* Stats Bento Grid */}
+      {profile && (
+        <section className="grid grid-cols-3 gap-4">
+          <div className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
+            <span className="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors">
+              wine_bar
+            </span>
+            <span className="text-2xl font-headline font-black text-primary">
+              {profile.wineCount}
+            </span>
+            <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest text-center">
+              ワイン数
+            </span>
+          </div>
+          <div className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
+            <span className="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors">
+              public
+            </span>
+            <span className="text-2xl font-headline font-black text-primary">
+              {profile.countriesExplored.length}
+            </span>
+            <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest text-center">
+              探索国数
+            </span>
+          </div>
+          <div className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
+            <span className="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors">
+              temp_preferences_custom
+            </span>
+            <span className="text-2xl font-headline font-black text-primary">
+              {profile.grapesExplored.length}
+            </span>
+            <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest text-center">
+              品種数
+            </span>
+          </div>
+        </section>
+      )}
 
-      {wines.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-gray-100">
-          <Wine size={48} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 mb-4">
-            まだワインが記録されていません
-          </p>
+      {/* Recent Discovery Header */}
+      <section className="space-y-8">
+        <div className="flex justify-between items-center">
+          <div className="relative">
+            <h3 className="text-3xl font-headline font-black text-primary leading-tight">
+              最近の発見
+            </h3>
+            <div className="absolute -bottom-2 left-0 w-12 h-1 bg-secondary opacity-30" />
+          </div>
           <Link
             href="/wines/new"
-            className="inline-flex items-center gap-2 bg-[#722f37] text-white px-6 py-2.5 rounded-lg font-medium hover:bg-[#5a252c] transition-colors"
+            className="text-xs font-label text-secondary uppercase tracking-widest flex items-center gap-1 hover:opacity-70"
           >
-            <PlusCircle size={18} />
-            最初のワインを記録
+            記録する{" "}
+            <span className="material-symbols-outlined text-sm">
+              arrow_forward
+            </span>
           </Link>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {wines.slice(0, 10).map((wine) => (
+
+        {/* Wine Cards */}
+        {wines.length === 0 ? (
+          <div className="bg-surface-container-low p-12 rounded-xl text-center">
+            <span className="material-symbols-outlined text-primary/20 text-6xl mb-4 block">
+              wine_bar
+            </span>
+            <p className="text-on-surface-variant mb-6 font-headline italic">
+              まだワインが記録されていません
+            </p>
             <Link
-              key={wine.id}
-              href={`/wines/${wine.id}`}
-              className="block bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+              href="/wines/new"
+              className="inline-flex items-center gap-2 bg-primary text-on-primary px-8 py-3 rounded-full font-label text-sm font-bold tracking-widest hover:bg-primary-container transition-colors"
             >
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-3 h-12 rounded-full flex-shrink-0 mt-0.5"
-                  style={{
-                    backgroundColor: WINE_TYPE_COLORS[wine.type],
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-gray-900 truncate">
-                      {wine.name}
-                    </h3>
-                    {wine.vintage && (
-                      <span className="text-xs text-gray-400 flex-shrink-0">
-                        {wine.vintage}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                    <span className="px-1.5 py-0.5 rounded bg-gray-100">
-                      {WINE_TYPE_LABELS[wine.type].ja}
-                    </span>
-                    {wine.country && (
-                      <span className="flex items-center gap-0.5">
-                        <MapPin size={10} />
-                        {wine.country}
-                        {wine.region && ` · ${wine.region}`}
-                      </span>
-                    )}
-                  </div>
-                  {wine.rating > 0 && (
-                    <div className="flex items-center gap-0.5 mt-1">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          size={12}
-                          className={
-                            i < wine.rating
-                              ? "fill-[#c9a84c] text-[#c9a84c]"
-                              : "text-gray-200"
-                          }
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="text-xs text-gray-400 flex-shrink-0">
-                  {new Date(wine.date).toLocaleDateString("ja-JP", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </div>
-              </div>
+              <span className="material-symbols-outlined text-lg">add</span>
+              最初のワインを記録
             </Link>
-          ))}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="space-y-12">
+            {wines.slice(0, 6).map((wine, idx) => {
+              const isFlipped = idx % 2 === 1;
+              return (
+                <Link
+                  key={wine.id}
+                  href={`/wines/${wine.id}`}
+                  className="group relative grid grid-cols-12 gap-6 items-center"
+                >
+                  {/* Wine color indicator */}
+                  <div
+                    className={`${
+                      isFlipped ? "col-span-7 order-1" : "col-span-5"
+                    } aspect-[3/4] overflow-hidden rounded-xl shadow-2xl bg-surface-container-low flex items-center justify-center`}
+                  >
+                    <div className="flex flex-col items-center gap-3">
+                      <div
+                        className="w-16 h-24 rounded-lg"
+                        style={{
+                          backgroundColor:
+                            WINE_TYPE_COLORS[wine.type] + "30",
+                          border: `2px solid ${WINE_TYPE_COLORS[wine.type]}`,
+                        }}
+                      />
+                      <span
+                        className="material-symbols-outlined text-4xl"
+                        style={{ color: WINE_TYPE_COLORS[wine.type] }}
+                      >
+                        wine_bar
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Wine info */}
+                  <div
+                    className={`${
+                      isFlipped
+                        ? "col-span-5 text-right order-first"
+                        : "col-span-7"
+                    } space-y-3`}
+                  >
+                    <div
+                      className={`flex items-center gap-2 ${
+                        isFlipped ? "justify-end" : ""
+                      }`}
+                    >
+                      {!isFlipped && (
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{
+                            backgroundColor: WINE_TYPE_COLORS[wine.type],
+                          }}
+                        />
+                      )}
+                      <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">
+                        {WINE_TYPE_LABELS[wine.type].en}
+                      </span>
+                      {isFlipped && (
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{
+                            backgroundColor: WINE_TYPE_COLORS[wine.type],
+                          }}
+                        />
+                      )}
+                    </div>
+                    <h4 className="text-2xl font-headline font-black text-primary leading-none">
+                      {wine.name}{" "}
+                      {wine.vintage && (
+                        <span className="text-lg">{wine.vintage}</span>
+                      )}
+                    </h4>
+                    <div className="space-y-1">
+                      {wine.producer && (
+                        <p className="text-sm font-body text-on-surface-variant">
+                          Producer: {wine.producer}
+                        </p>
+                      )}
+                      {wine.country && (
+                        <p
+                          className={`text-sm font-body flex items-center gap-1 italic ${
+                            isFlipped ? "justify-end" : ""
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-xs">
+                            location_on
+                          </span>{" "}
+                          {wine.region && `${wine.region}, `}
+                          {wine.country}
+                        </p>
+                      )}
+                    </div>
+                    {wine.rating > 0 && (
+                      <div
+                        className={`flex gap-1 text-secondary ${
+                          isFlipped ? "justify-end" : ""
+                        }`}
+                      >
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span
+                            key={i}
+                            className="material-symbols-outlined text-sm"
+                            style={
+                              i < wine.rating
+                                ? {
+                                    fontVariationSettings: "'FILL' 1",
+                                  }
+                                : { opacity: 0.2 }
+                            }
+                          >
+                            star
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Quote / Mood section */}
+      <section className="py-12 text-center space-y-4">
+        <span className="material-symbols-outlined text-primary opacity-20 text-4xl">
+          format_quote
+        </span>
+        <p className="text-xl font-headline italic text-on-surface-variant/80 max-w-sm mx-auto leading-relaxed">
+          「ワインは瓶に詰められた詩である」
+        </p>
+        <p className="text-[10px] font-label text-on-surface-variant uppercase tracking-[0.3em]">
+          Robert Louis Stevenson
+        </p>
+      </section>
     </div>
   );
 }

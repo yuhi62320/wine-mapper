@@ -3,19 +3,20 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Star, Globe, ExternalLink, Wine, Award, Tag, Pencil, ShoppingCart } from "lucide-react";
 import { WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS, PalateLevel } from "@/lib/types";
 import { getWines } from "@/lib/store";
 import { getDefaultPalate } from "@/lib/wine-defaults";
 import RadarChart from "@/components/radar-chart";
 import { getAromaVisual, AROMA_IMAGE_COPYRIGHT } from "@/lib/aroma-images";
 
-const PALATE_NAMES: Record<string, string> = {
-  sweetness: "甘さ",
-  acidity: "酸味",
-  tannin: "タンニン",
-  body: "ボディ",
-  finish: "余韻",
+const WINE_TYPE_GRADIENTS: Record<string, string> = {
+  red: "from-[#561922] to-[#722f37]",
+  white: "from-[#a89540] to-[#c9b84c]",
+  rose: "from-[#9e4a5a] to-[#c46a7e]",
+  sparkling: "from-[#8a7a5a] to-[#b5a47a]",
+  fortified: "from-[#5a2e10] to-[#8b4513]",
+  dessert: "from-[#8a6e10] to-[#b8941a]",
+  orange: "from-[#8e5a1a] to-[#c07830]",
 };
 
 export default function WineDetailPage() {
@@ -31,231 +32,288 @@ export default function WineDetailPage() {
 
   if (!wine) {
     return (
-      <div className="px-4 pt-6 text-center text-gray-500">
-        ワインが見つかりません
+      <div className="min-h-screen bg-[#fcf9f3] flex items-center justify-center">
+        <p className="font-body text-[#534343]">ワインが見つかりません</p>
       </div>
     );
   }
 
+  const gradient = WINE_TYPE_GRADIENTS[wine.type] || WINE_TYPE_GRADIENTS.red;
+  const purchaseQuery = encodeURIComponent(
+    [wine.producer, wine.name, wine.vintage].filter(Boolean).join(" ")
+  );
+  const shops = [
+    { name: "Enoteca", url: `https://www.enoteca.co.jp/search?keyword=${purchaseQuery}` },
+    { name: "Rakuten", url: `https://search.rakuten.co.jp/search/mall/${purchaseQuery}/?l-id=s_search&l2-id=shop_header_search` },
+    { name: "Amazon.co.jp", url: `https://www.amazon.co.jp/s?k=${purchaseQuery}` },
+    { name: "Vivino", url: `https://www.vivino.com/search/wines?q=${purchaseQuery}` },
+  ];
+
+  // Radar chart data
+  const isRed = wine.type === "red";
+  const showTannin = wine.palate.tannin !== null;
+  const wineData = [
+    { label: "甘さ", value: wine.palate.sweetness },
+    { label: "酸味", value: wine.palate.acidity },
+    ...(showTannin
+      ? [{ label: "タンニン", value: wine.palate.tannin as PalateLevel }]
+      : []),
+    { label: "ボディ", value: wine.palate.body },
+    { label: "余韻", value: wine.palate.finish },
+  ];
+  let baseData: { label: string; value: PalateLevel }[] | undefined;
+  if (wine.grapeVarieties.length > 0) {
+    const grapePalate = getDefaultPalate(wine.grapeVarieties, isRed);
+    baseData = [
+      { label: "甘さ", value: grapePalate.sweetness },
+      { label: "酸味", value: grapePalate.acidity },
+      ...(showTannin && grapePalate.tannin !== null
+        ? [{ label: "タンニン", value: grapePalate.tannin }]
+        : []),
+      { label: "ボディ", value: grapePalate.body },
+      { label: "余韻", value: grapePalate.finish },
+    ];
+  }
+
+  const tourTypeIcons: Record<string, string> = {
+    winery_visit: "castle",
+    wine_tour: "directions_bus",
+    food_pairing: "restaurant",
+    harvest_experience: "agriculture",
+    city_tour: "location_city",
+    accommodation: "hotel",
+  };
+
   return (
-    <div className="px-4 pt-6 pb-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="min-h-screen bg-[#fcf9f3] pb-36">
+      {/* ===== Hero Section ===== */}
+      <div className={`relative bg-gradient-to-br ${gradient} px-5 pt-12 pb-8`}>
+        {/* Back button */}
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          className="absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white/90 hover:bg-white/25 transition-colors"
         >
-          <ArrowLeft size={16} />
-          戻る
+          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
         </button>
-        <Link
-          href={`/wines/${wine.id}/edit`}
-          className="flex items-center gap-1 text-sm text-[#722f37] hover:text-[#5a252c] transition-colors"
-        >
-          <Pencil size={16} />
-          編集
-        </Link>
+
+        {/* Wine type pill */}
+        <div className="flex justify-end mb-4">
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-label font-medium tracking-wide"
+            style={{
+              backgroundColor: WINE_TYPE_COLORS[wine.type] + "33",
+              color: "white",
+              border: "1px solid rgba(255,255,255,0.25)",
+            }}
+          >
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: WINE_TYPE_COLORS[wine.type] }}
+            />
+            {WINE_TYPE_LABELS[wine.type].ja}
+          </span>
+        </div>
+
+        {/* Wine name */}
+        <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl text-white leading-tight tracking-tight mb-2">
+          {wine.name || wine.producer}
+        </h1>
+
+        {/* Producer */}
+        {wine.producer && wine.name && wine.name !== wine.producer && (
+          <p className="font-body text-white/70 text-sm mb-3">{wine.producer}</p>
+        )}
+        {!wine.name && (
+          <p className="font-body text-white/70 text-sm mb-3">{wine.producer}</p>
+        )}
+
+        {/* Star rating */}
+        {wine.rating > 0 && (
+          <div className="flex items-center gap-1 mt-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span
+                key={i}
+                className="material-symbols-outlined text-[22px]"
+                style={{
+                  color: i < wine.rating ? "#fed977" : "rgba(255,255,255,0.2)",
+                  fontVariationSettings: i < wine.rating
+                    ? "'FILL' 1, 'wght' 400"
+                    : "'FILL' 0, 'wght' 400",
+                }}
+              >
+                star
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Wine Header */}
-      <div className="flex items-start gap-3 mb-6">
-        <div
-          className="w-4 h-16 rounded-full flex-shrink-0"
-          style={{ backgroundColor: WINE_TYPE_COLORS[wine.type] }}
-        />
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">
-            {wine.producer || wine.name}
-          </h1>
-          {wine.name && wine.producer && wine.name !== wine.producer && (
-            <p className="text-sm text-gray-600">{wine.name}</p>
-          )}
-          <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-            <span className="px-2 py-0.5 rounded bg-gray-100 text-xs">
-              {WINE_TYPE_LABELS[wine.type].ja}
-            </span>
-            {wine.vintage && <span>{wine.vintage}年</span>}
+      {/* ===== Content ===== */}
+      <div className="px-4 -mt-4 space-y-4">
+        {/* ===== Info Bento Card ===== */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
+          <div className="grid grid-cols-3 gap-4">
+            {/* Region */}
+            {(wine.region || wine.country) && (
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Region</p>
+                <p className="font-body text-sm font-bold text-[#1c1c18]">
+                  {wine.region || wine.country}
+                </p>
+                {wine.region && wine.country && (
+                  <p className="font-body text-[11px] text-[#534343]">{wine.country}</p>
+                )}
+              </div>
+            )}
+
+            {/* Grape */}
+            {wine.grapeVarieties.length > 0 && (
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Grape</p>
+                <p className="font-body text-sm font-bold text-[#1c1c18]">
+                  {wine.grapeVarieties[0]}
+                </p>
+                {wine.grapeVarieties.length > 1 && (
+                  <p className="font-body text-[11px] text-[#534343]">
+                    +{wine.grapeVarieties.length - 1} more
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Vintage */}
+            {wine.vintage && (
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Vintage</p>
+                <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.vintage}</p>
+              </div>
+            )}
+
+            {/* Alcohol */}
+            {wine.abv != null && (
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Alcohol</p>
+                <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.abv}%</p>
+              </div>
+            )}
+
+            {/* Service / Taste type */}
+            {wine.tasteType && (
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Service</p>
+                <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.tasteType}</p>
+              </div>
+            )}
+
+            {/* Price */}
+            {wine.price != null && (
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Price</p>
+                <p className="font-body text-sm font-bold text-[#1c1c18]">¥{wine.price.toLocaleString()}</p>
+              </div>
+            )}
+
+            {/* Volume */}
+            {wine.volume != null && (
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Volume</p>
+                <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.volume}ml</p>
+              </div>
+            )}
+
+            {/* Appellation */}
+            {wine.appellation && (
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Appellation</p>
+                <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.appellation}</p>
+              </div>
+            )}
+
+            {/* Classification */}
+            {wine.classification && (
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Class</p>
+                <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.classification}</p>
+              </div>
+            )}
           </div>
-          {wine.rating > 0 && (
-            <div className="flex items-center gap-0.5 mt-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  size={16}
-                  className={
-                    i < wine.rating
-                      ? "fill-[#c9a84c] text-[#c9a84c]"
-                      : "text-gray-200"
-                  }
-                />
-              ))}
+
+          {/* Certifications */}
+          {wine.certifications && wine.certifications.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-[#d8c1c2]/30">
+              <div className="flex flex-wrap gap-1.5">
+                {wine.certifications.map((c) => (
+                  <span
+                    key={c}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-label font-medium bg-[#fed977]/30 text-[#755b00] rounded-full"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">verified</span>
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Producer URL */}
+          {wine.producerUrl && (
+            <div className="mt-4 pt-4 border-t border-[#d8c1c2]/30">
+              <a
+                href={wine.producerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-label text-[#561922] hover:text-[#722f37] transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px]">language</span>
+                公式サイト
+                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+              </a>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Info Cards */}
-      <div className="space-y-4">
-        {/* Origin & Producer */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <h2 className="font-medium text-gray-800 mb-2 flex items-center gap-1.5">
-            <MapPin size={16} className="text-[#722f37]" />
-            産地・生産者
-          </h2>
-          <div className="space-y-1.5 text-sm">
-            {wine.producer && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">生産者</span>
-                <span className="text-gray-800">{wine.producer}</span>
-              </div>
-            )}
-            {wine.country && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">国</span>
-                <span className="text-gray-800">{wine.country}</span>
-              </div>
-            )}
-            {wine.region && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">地域</span>
-                <span className="text-gray-800">{wine.region}</span>
-              </div>
-            )}
-            {wine.subRegion && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">サブ地域</span>
-                <span className="text-gray-800">{wine.subRegion}</span>
-              </div>
-            )}
-            {wine.village && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">村名</span>
-                <span className="text-gray-800">{wine.village}</span>
-              </div>
-            )}
-            {wine.appellation && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">格付け</span>
-                <span className="text-gray-800">{wine.appellation}</span>
-              </div>
-            )}
-            {wine.classification && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">品質分類</span>
-                <span className="text-gray-800">{wine.classification}</span>
-              </div>
-            )}
-            {wine.producerUrl && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500">HP</span>
-                <a
-                  href={wine.producerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#722f37] flex items-center gap-1 text-xs"
-                >
-                  <Globe size={12} />
-                  公式サイト
-                  <ExternalLink size={10} />
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Wine Details */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <h2 className="font-medium text-gray-800 mb-2 flex items-center gap-1.5">
-            <Wine size={16} className="text-[#722f37]" />
-            ワイン詳細
-          </h2>
-          <div className="space-y-1.5 text-sm">
-            {wine.grapeVarieties.length > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">品種</span>
-                <span className="text-gray-800 text-right max-w-[60%]">
-                  {wine.grapeVarieties.join(", ")}
-                </span>
-              </div>
-            )}
-            {wine.abv != null && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">ABV</span>
-                <span className="text-gray-800">{wine.abv}%</span>
-              </div>
-            )}
-            {wine.volume != null && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">容量</span>
-                <span className="text-gray-800">{wine.volume}ml</span>
-              </div>
-            )}
-            {wine.aging && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">熟成</span>
-                <span className="text-gray-800">{wine.aging}</span>
-              </div>
-            )}
-            {wine.tasteType && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">味わいタイプ</span>
-                <span className="text-gray-800">{wine.tasteType}</span>
-              </div>
-            )}
-            {wine.bottler && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">瓶詰め元</span>
-                <span className="text-gray-800 text-right max-w-[60%]">
-                  {wine.bottler}
-                </span>
-              </div>
-            )}
-            {wine.price != null && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">価格</span>
-                <span className="text-gray-800">¥{wine.price.toLocaleString()}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Certifications */}
-        {wine.certifications && wine.certifications.length > 0 && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <h2 className="font-medium text-gray-800 mb-2 flex items-center gap-1.5">
-              <Award size={16} className="text-[#722f37]" />
-              認証・受賞
+        {/* ===== Tasting Notes Section ===== */}
+        {wine.notes && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
+            <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-3">
+              Tasting Notes
             </h2>
-            <div className="flex flex-wrap gap-1.5">
-              {wine.certifications.map((c) => (
-                <span
-                  key={c}
-                  className="px-2.5 py-1 text-xs bg-amber-50 text-amber-700 rounded-full border border-amber-200"
-                >
-                  {c}
-                </span>
-              ))}
+            <div className="border-l-2 border-[#755b00] pl-4">
+              <p className="font-headline text-base italic text-[#1c1c18] leading-relaxed whitespace-pre-wrap">
+                {wine.notes}
+              </p>
             </div>
           </div>
         )}
 
-        {/* Aromas with images */}
+        {/* ===== Aroma Tags ===== */}
         {wine.aromas.length > 0 && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <h2 className="font-medium text-gray-800 mb-2">香り</h2>
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
+            <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-3">
+              Aromas
+            </h2>
             <div className="flex flex-wrap gap-2">
               {wine.aromas.map((a) => {
                 const visual = getAromaVisual(a);
                 return (
-                  <span key={a}
-                    className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 text-xs bg-[#722f37]/10 text-[#722f37] rounded-full">
-                    <span className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 bg-white flex items-center justify-center">
+                  <span
+                    key={a}
+                    className="inline-flex items-center gap-1.5 pl-1 pr-3 py-1.5 text-xs font-label font-medium bg-[#561922]/8 text-[#561922] rounded-full border border-[#d8c1c2]/50"
+                  >
+                    <span className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-[#f6f3ed] flex items-center justify-center">
                       {visual.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={visual.imageUrl} alt={a} className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.textContent = visual.emoji; }} />
+                        <img
+                          src={visual.imageUrl}
+                          alt={a}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                            (e.target as HTMLImageElement).parentElement!.textContent = visual.emoji;
+                          }}
+                        />
                       ) : (
-                        <span className="text-[10px]">{visual.emoji}</span>
+                        <span className="text-xs">{visual.emoji}</span>
                       )}
                     </span>
                     {a}
@@ -263,166 +321,180 @@ export default function WineDetailPage() {
                 );
               })}
             </div>
-            <p className="text-[9px] text-gray-300 mt-2">📷 {AROMA_IMAGE_COPYRIGHT}</p>
+            <p className="text-[9px] text-[#534343]/40 mt-3 font-label">{AROMA_IMAGE_COPYRIGHT}</p>
           </div>
         )}
 
-        {/* Palate - Radar Chart with grape base overlay */}
-        {(() => {
-          const isRed = wine.type === "red";
-          const showTannin = wine.palate.tannin !== null;
-          const wineData = [
-            { label: "甘さ", value: wine.palate.sweetness },
-            { label: "酸味", value: wine.palate.acidity },
-            ...(showTannin
-              ? [{ label: "タンニン", value: wine.palate.tannin as PalateLevel }]
-              : []),
-            { label: "ボディ", value: wine.palate.body },
-            { label: "余韻", value: wine.palate.finish },
-          ];
-
-          // Compute grape base overlay if grapes are available
-          let baseData: { label: string; value: PalateLevel }[] | undefined;
-          if (wine.grapeVarieties.length > 0) {
-            const grapePalate = getDefaultPalate(wine.grapeVarieties, isRed);
-            baseData = [
-              { label: "甘さ", value: grapePalate.sweetness },
-              { label: "酸味", value: grapePalate.acidity },
-              ...(showTannin && grapePalate.tannin !== null
-                ? [{ label: "タンニン", value: grapePalate.tannin }]
-                : []),
-              { label: "ボディ", value: grapePalate.body },
-              { label: "余韻", value: grapePalate.finish },
-            ];
-          }
-
-          return (
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <h2 className="font-medium text-gray-800 mb-3">味わい</h2>
-              <div className="flex justify-center">
-                <RadarChart data={wineData} baseData={baseData} size={200} />
-              </div>
-              {baseData && (
-                <div className="flex items-center justify-center gap-4 mt-2 text-[10px] text-gray-400">
-                  <span className="flex items-center gap-1">
-                    <span className="inline-block w-4 h-0.5 bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
-                    品種の特徴
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
-                    あなたの評価
-                  </span>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* Notes */}
-        {wine.notes && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <h2 className="font-medium text-gray-800 mb-2">ノート</h2>
-            <p className="text-sm text-gray-600 whitespace-pre-wrap">
-              {wine.notes}
-            </p>
+        {/* ===== Radar Chart Section ===== */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
+          <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-4">
+            Palate Profile
+          </h2>
+          <div className="flex justify-center">
+            <RadarChart data={wineData} baseData={baseData} size={220} />
           </div>
-        )}
-
-        {/* Purchase Links */}
-        {(() => {
-          const query = encodeURIComponent(
-            [wine.producer, wine.name, wine.vintage].filter(Boolean).join(" ")
-          );
-          const shops = [
-            { name: "Enoteca", url: `https://www.enoteca.co.jp/search?keyword=${query}` },
-            { name: "Rakuten", url: `https://search.rakuten.co.jp/search/mall/${query}/?l-id=s_search&l2-id=shop_header_search` },
-            { name: "Amazon.co.jp", url: `https://www.amazon.co.jp/s?k=${query}` },
-            { name: "Vivino", url: `https://www.vivino.com/search/wines?q=${query}` },
-          ];
-          return (
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <h2 className="font-medium text-gray-800 mb-2 flex items-center gap-1.5">
-                <ShoppingCart size={16} className="text-[#722f37]" />
-                購入する
-              </h2>
-              <div className="grid grid-cols-2 gap-2">
-                {shops.map((shop) => (
-                  <a
-                    key={shop.name}
-                    href={shop.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-[#722f37] bg-[#722f37]/5 rounded-lg hover:bg-[#722f37]/10 transition-colors"
-                  >
-                    {shop.name}
-                    <ExternalLink size={10} />
-                  </a>
-                ))}
-              </div>
+          {baseData && (
+            <div className="flex items-center justify-center gap-5 mt-3 text-[11px] font-label text-[#534343]/60">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-5 h-[2px] bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
+                品種の特徴
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-5 h-[2px] bg-[#722f37]" />
+                あなたの評価
+              </span>
             </div>
-          );
-        })()}
+          )}
+        </div>
 
-        {/* Saved Tours */}
-        {wine.tours && wine.tours.length > 0 && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <h2 className="font-medium text-gray-800 mb-3 flex items-center gap-1.5">
-              ✈️ 保存した旅行プラン
+        {/* ===== Region Guide Section ===== */}
+        {wine.region && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
+            <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-3">
+              Region Guide
             </h2>
-            <div className="space-y-3">
-              {wine.tours.map((tour, i) => {
-                const typeEmoji: Record<string, string> = {
-                  winery_visit: "🏰",
-                  wine_tour: "🚌",
-                  food_pairing: "🍽️",
-                  harvest_experience: "🍇",
-                  city_tour: "🏙️",
-                  accommodation: "🏨",
-                };
-                return (
-                  <div key={i} className="border border-gray-100 rounded-lg p-3">
-                    <h4 className="font-medium text-gray-900 text-sm flex items-center gap-1.5 mb-1">
-                      <span>{typeEmoji[tour.type] || "🗺️"}</span>
-                      {tour.title}
-                    </h4>
-                    <div className="flex flex-wrap gap-1.5 mb-1.5">
-                      <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.location}</span>
-                      <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.duration}</span>
-                      {tour.priceRange && (
-                        <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{tour.priceRange}</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">{tour.description}</p>
-                    {tour.highlights && tour.highlights.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {tour.highlights.map((h, j) => (
-                          <span key={j} className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full">{h}</span>
-                        ))}
+            <div className="flex items-center gap-4">
+              {/* Thumbnail placeholder with map pin icon */}
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[#f6f3ed] to-[#d8c1c2]/30 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-[28px] text-[#722f37]/50">map</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-headline text-base font-bold text-[#1c1c18] truncate">
+                  {wine.region}
+                </p>
+                <p className="font-body text-xs text-[#534343] mt-0.5">
+                  {[wine.subRegion, wine.country].filter(Boolean).join(" · ")}
+                </p>
+                {wine.village && (
+                  <p className="font-body text-[11px] text-[#534343]/60 mt-0.5">{wine.village}</p>
+                )}
+              </div>
+              <span className="material-symbols-outlined text-[20px] text-[#534343]/40">chevron_right</span>
+            </div>
+          </div>
+        )}
+
+        {/* ===== Winery Tours Section ===== */}
+        {wine.tours && wine.tours.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 px-1">
+              Winery Tours
+            </h2>
+            {wine.tours.map((tour, i) => (
+              <div
+                key={i}
+                className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#561922] to-[#722f37] p-5 shadow-sm"
+              >
+                {/* Decorative overlay circles */}
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
+                <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/5 rounded-full translate-y-6 -translate-x-6" />
+
+                <div className="relative z-10">
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="material-symbols-outlined text-[22px] text-[#fed977]">
+                      {tourTypeIcons[tour.type] || "travel_explore"}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-headline text-base font-bold text-white leading-snug">
+                        {tour.title}
+                      </h3>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label bg-white/10 text-white/80">
+                          <span className="material-symbols-outlined text-[12px]">location_on</span>
+                          {tour.location}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label bg-white/10 text-white/80">
+                          <span className="material-symbols-outlined text-[12px]">schedule</span>
+                          {tour.duration}
+                        </span>
+                        {tour.priceRange && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label bg-white/10 text-white/80">
+                            <span className="material-symbols-outlined text-[12px]">payments</span>
+                            {tour.priceRange}
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  </div>
+
+                  <p className="font-body text-xs text-white/70 leading-relaxed mb-3">
+                    {tour.description}
+                  </p>
+
+                  {tour.highlights && tour.highlights.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {tour.highlights.map((h, j) => (
+                        <span
+                          key={j}
+                          className="px-2 py-0.5 text-[10px] font-label font-medium bg-[#fed977]/20 text-[#fed977] rounded-full"
+                        >
+                          {h}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4 mt-2">
                     {tour.bestSeason && (
-                      <p className="text-[10px] text-gray-400 mt-1">🗓️ ベストシーズン: {tour.bestSeason}</p>
+                      <span className="flex items-center gap-1 text-[10px] font-label text-white/50">
+                        <span className="material-symbols-outlined text-[13px]">calendar_month</span>
+                        {tour.bestSeason}
+                      </span>
                     )}
                     {tour.bookingTip && (
-                      <p className="text-[10px] text-amber-600 mt-1">💡 {tour.bookingTip}</p>
+                      <span className="flex items-center gap-1 text-[10px] font-label text-[#fed977]/70">
+                        <span className="material-symbols-outlined text-[13px]">lightbulb</span>
+                        {tour.bookingTip}
+                      </span>
                     )}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Date */}
-        <div className="text-center text-xs text-gray-400 mt-4">
-          {new Date(wine.date).toLocaleDateString("ja-JP", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-          に記録
+        {/* ===== Purchase Links ===== */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
+          <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-3">
+            Purchase
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            {shops.map((shop) => (
+              <a
+                key={shop.name}
+                href={shop.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-label font-semibold text-[#561922] bg-[#561922]/5 rounded-xl hover:bg-[#561922]/10 transition-colors border border-[#d8c1c2]/30"
+              >
+                {shop.name}
+                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* ===== Date Recorded ===== */}
+        <div className="text-center py-4">
+          <p className="font-label text-[11px] text-[#534343]/40 tracking-wide">
+            {new Date(wine.date).toLocaleDateString("ja-JP", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+            に記録
+          </p>
         </div>
       </div>
+
+      {/* ===== Edit FAB ===== */}
+      <Link
+        href={`/wines/${wine.id}/edit`}
+        className="fixed bottom-28 right-8 w-14 h-14 flex items-center justify-center rounded-full bg-[#561922] text-white shadow-lg shadow-[#561922]/30 hover:bg-[#722f37] transition-colors z-50"
+      >
+        <span className="material-symbols-outlined text-[24px]">edit</span>
+      </Link>
     </div>
   );
 }
