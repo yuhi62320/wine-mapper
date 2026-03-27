@@ -104,6 +104,7 @@ export interface Rank {
   nameJa: string;
   minXp: number;
   icon: string;
+  description?: string;
 }
 
 export interface Badge {
@@ -111,7 +112,8 @@ export interface Badge {
   name: string;
   nameJa: string;
   description: string;
-  category: "region" | "grape" | "style" | "milestone" | "streak";
+  category: "milestone" | "discovery" | "expertise" | "collection" | "style" | "terroir" | "culture" | "streak" | "legend" | "region" | "grape";
+  rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
   icon: string;
   condition: (profile: UserProfile, wines: WineLog[]) => boolean;
 }
