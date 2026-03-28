@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/", icon: "home", label: "ホーム" },
   { href: "/map", icon: "map", label: "マップ" },
   { href: "/wines/new", icon: "add", label: "記録", isCenter: true },
+  { href: "/grapes", icon: "eco", label: "品種" },
   { href: "/profile", icon: "person", label: "マイページ" },
 ];
 
@@ -19,7 +20,7 @@ export function Navigation() {
   if (pathname === "/login") return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-8 pb-8 pt-4 bg-[#fcf9f3]/80 backdrop-blur-xl border-t border-[#722f37]/5 shadow-[0_-4px_20px_rgba(86,25,34,0.04)] rounded-t-[2rem]">
+    <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-8 pt-4 bg-[#fcf9f3]/80 backdrop-blur-xl border-t border-[#722f37]/5 shadow-[0_-4px_20px_rgba(86,25,34,0.04)] rounded-t-[2rem]">
       {NAV_ITEMS.map((item) => {
         // Show login link instead of profile when not authenticated
         const href =
