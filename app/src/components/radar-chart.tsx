@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import { PalateLevel } from "@/lib/types";
 
 interface RadarChartProps {
@@ -10,17 +11,24 @@ interface RadarChartProps {
   baseColor?: string;
   interactive?: boolean;
   onChange?: (index: number, value: PalateLevel) => void;
+  /** Map from label name to array of 5 level descriptions (index 0 = level 1) */
+  levelLabels?: Record<string, string[]>;
 }
 
 export default function RadarChart({
   data,
   baseData,
-  size = 240,
+  size = 260,
   color = "#561922",
   baseColor = "#d4a574",
   interactive = false,
   onChange,
+  levelLabels,
 }: RadarChartProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [dragValue, setDragValue] = useState<PalateLevel | null>(null);
+
   const center = size / 2;
   const maxR = size / 2 - 30;
   const levels = 5;
@@ -32,6 +40,70 @@ export default function RadarChart({
     const r = (value / levels) * maxR;
     return [center + r * Math.cos(angle), center + r * Math.sin(angle)];
   }
+
+  // Calculate palate level from pointer position projected onto an axis
+  const calcValueFromPointer = useCallback(
+    (index: number, clientX: number, clientY: number): PalateLevel => {
+      const svg = svgRef.current;
+      if (!svg) return 1;
+
+      // Convert client coordinates to SVG coordinates
+      const pt = svg.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const svgPt = pt.matrixTransform(svg.getScreenCTM()!.inverse());
+
+      // Vector from center to pointer
+      const dx = svgPt.x - center;
+      const dy = svgPt.y - center;
+
+      // Axis unit vector for this index
+      const angle = startAngle + index * angleStep;
+      const ax = Math.cos(angle);
+      const ay = Math.sin(angle);
+
+      // Project pointer vector onto axis (dot product)
+      const projection = dx * ax + dy * ay;
+
+      // Map projection distance to value 1-5
+      const stepSize = maxR / levels;
+      const raw = Math.round(projection / stepSize);
+      const clamped = Math.max(1, Math.min(5, raw)) as PalateLevel;
+      return clamped;
+    },
+    [center, maxR, levels, angleStep, startAngle]
+  );
+
+  const handlePointerDown = useCallback(
+    (index: number, e: React.PointerEvent) => {
+      if (!interactive || !onChange) return;
+      e.preventDefault();
+      (e.target as Element).setPointerCapture(e.pointerId);
+      setDraggingIndex(index);
+      const val = calcValueFromPointer(index, e.clientX, e.clientY);
+      setDragValue(val);
+      onChange(index, val);
+    },
+    [interactive, onChange, calcValueFromPointer]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (draggingIndex === null || !onChange) return;
+      e.preventDefault();
+      const val = calcValueFromPointer(draggingIndex, e.clientX, e.clientY);
+      if (val !== dragValue) {
+        setDragValue(val);
+        onChange(draggingIndex, val);
+      }
+    },
+    [draggingIndex, dragValue, onChange, calcValueFromPointer]
+  );
+
+  const handlePointerUp = useCallback(() => {
+    setDraggingIndex(null);
+    setDragValue(null);
+  }, []);
 
   // Grid lines
   const gridPolygons = Array.from({ length: levels }, (_, lvl) => {
@@ -67,15 +139,39 @@ export default function RadarChart({
     };
   });
 
-  function handleClick(index: number) {
-    if (!interactive || !onChange) return;
-    const current = data[index].value;
-    const next = current >= 5 ? 1 : ((current + 1) as PalateLevel);
-    onChange(index, next);
-  }
+  // Build tooltip content for the currently dragged point
+  const tooltipInfo =
+    draggingIndex !== null && dragValue !== null
+      ? (() => {
+          const label = data[draggingIndex].label;
+          const [tx, ty] = getPoint(draggingIndex, dragValue);
+          const hasLevelLabel =
+            levelLabels && levelLabels[label] && levelLabels[label].length >= dragValue;
+          const text = hasLevelLabel
+            ? levelLabels![label][dragValue - 1]
+            : `${dragValue}`;
+          return { x: tx, y: ty, text };
+        })()
+      : null;
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${size} ${size}`}
+      width={size}
+      height={size}
+      onPointerMove={interactive ? handlePointerMove : undefined}
+      onPointerUp={interactive ? handlePointerUp : undefined}
+      onPointerLeave={interactive ? handlePointerUp : undefined}
+      style={{ touchAction: "none" }}
+    >
+      {/* CSS transition for smooth polygon animation */}
+      <style>{`
+        .radar-polygon {
+          transition: points 0.2s ease-out;
+        }
+      `}</style>
+
       {/* Grid - delicate hairline strokes */}
       {gridPolygons.map((points, i) => (
         <polygon
@@ -132,8 +228,9 @@ export default function RadarChart({
         </>
       )}
 
-      {/* Data area - transparent wine tint */}
+      {/* Data area - transparent wine tint with CSS transition */}
       <polygon
+        className="radar-polygon"
         points={dataPoints}
         fill={color}
         fillOpacity={0.15}
@@ -141,23 +238,67 @@ export default function RadarChart({
         strokeWidth={1.5}
       />
 
-      {/* Data points - refined like map pins */}
+      {/* Data points with invisible hit areas for touch targets */}
       {data.map((d, i) => {
         const [x, y] = getPoint(i, d.value);
+        const isDragging = draggingIndex === i;
         return (
-          <circle
-            key={i}
-            cx={x}
-            cy={y}
-            r={interactive ? 6 : 3}
-            fill={color}
-            stroke="white"
-            strokeWidth={1.5}
-            className={interactive ? "cursor-pointer" : ""}
-            onClick={() => handleClick(i)}
-          />
+          <g key={i}>
+            {/* Invisible larger hit area for easier touch targeting */}
+            {interactive && (
+              <circle
+                cx={x}
+                cy={y}
+                r={16}
+                fill="transparent"
+                className="cursor-grab active:cursor-grabbing"
+                onPointerDown={(e) => handlePointerDown(i, e)}
+              />
+            )}
+            {/* Visible data point */}
+            <circle
+              cx={x}
+              cy={y}
+              r={interactive ? (isDragging ? 7 : 5) : 3}
+              fill={color}
+              stroke="white"
+              strokeWidth={1.5}
+              className={interactive ? "cursor-grab active:cursor-grabbing pointer-events-none" : ""}
+              style={{
+                transition: "r 0.15s ease-out",
+              }}
+            />
+          </g>
         );
       })}
+
+      {/* Tooltip shown near the dragged point */}
+      {tooltipInfo && (
+        <g>
+          {/* Tooltip background */}
+          <rect
+            x={tooltipInfo.x - 24}
+            y={tooltipInfo.y - 28}
+            width={48}
+            height={18}
+            rx={4}
+            fill="rgba(30, 10, 10, 0.85)"
+          />
+          {/* Tooltip text */}
+          <text
+            x={tooltipInfo.x}
+            y={tooltipInfo.y - 16}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={10}
+            fill="white"
+            fontFamily="'Noto Serif JP', serif"
+            fontWeight={500}
+          >
+            {tooltipInfo.text}
+          </text>
+        </g>
+      )}
 
       {/* Labels - serif & elegant */}
       {data.map((d, i) => (

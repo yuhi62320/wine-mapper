@@ -1,6 +1,7 @@
 "use client";
 
 import { UserProfile, WineLog } from "./types";
+import { deleteWinePhoto } from "@/lib/photo-store";
 import {
   calculateXpForLog,
   calculateBonusXp,
@@ -160,6 +161,8 @@ export function updateWine(wine: WineLog) {
 }
 
 export function deleteWine(id: string) {
+  // Clean up stored photo before removing the wine
+  deleteWinePhoto(id);
   const wines = getWines().filter((w) => w.id !== id);
   saveWines(wines);
 }

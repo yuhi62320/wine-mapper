@@ -30,6 +30,7 @@ import { normalizeGrapes, getGrapeSuggestions, findGrape } from "@/lib/grape-mas
 import RadarChart from "@/components/radar-chart";
 import { getRegionImage, getSectionImage, getGuideText } from "@/lib/region-images";
 import { getAromaVisual, AROMA_IMAGE_COPYRIGHT } from "@/lib/aroma-images";
+import { saveWinePhoto } from "@/lib/photo-store";
 
 const PALATE_LABELS: Record<string, { label: string; levels: string[] }> = {
   sweetness: {
@@ -115,6 +116,7 @@ export default function NewWinePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [priceHint, setPriceHint] = useState("");
   const [visionResult, setVisionResult] = useState<WineVisionResult | null>(null);
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
 
   // Section collapse
   const [showAromaPicker, setShowAromaPicker] = useState(false);
@@ -125,6 +127,10 @@ export default function NewWinePage() {
 
   // Text search (when no image)
   const [textSearching, setTextSearching] = useState(false);
+
+  // Candidate picker for multi-result search
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [showCandidates, setShowCandidates] = useState(false);
 
   // Region guide (supports both old string format and new object format)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -317,12 +323,83 @@ export default function NewWinePage() {
         return;
       }
 
+      // Store photo for later saving
+      setPhotoDataUrl(dataUrl);
+
       applyVisionResult(result);
     } catch (err) {
       setScanMessage(`エラー: ${err instanceof Error ? err.message : "分析に失敗しました"}`);
     } finally {
       setScanning(false);
     }
+  }
+
+  // === Apply a single candidate result to form fields ===
+  function applyCandidateResult(candidate: any) {
+    // Registry fields
+    if (candidate.producer) setProducer(candidate.producer);
+    if (candidate.name) setName(candidate.name);
+    if (candidate.country) {
+      const match = WINE_COUNTRIES.find(
+        (c) => c.name.toLowerCase() === candidate.country.toLowerCase() || c.nameJa === candidate.country
+      );
+      if (match) setCountry(match.name);
+    }
+    if (candidate.region) setRegion(candidate.region);
+    if (candidate.sub_region) setSubRegion(candidate.sub_region);
+    if (candidate.village) setVillage(candidate.village);
+    if (candidate.vintage) setVintage(String(candidate.vintage));
+    if (candidate.appellation) setAppellation(candidate.appellation);
+    if (candidate.classification) setClassification(candidate.classification);
+    if (candidate.grape_varieties?.length > 0) setGrapes(candidate.grape_varieties.join(", "));
+    if (candidate.abv) setAbv(String(candidate.abv));
+    if (candidate.aging) setAging(candidate.aging);
+    if (candidate.taste_type) setTasteType(candidate.taste_type);
+    if (candidate.bottler) setBottler(candidate.bottler);
+    if (candidate.certifications?.length > 0) setCertifications(candidate.certifications.join(", "));
+    if (candidate.producer_url) setProducerUrl(candidate.producer_url);
+    if (candidate.type) setType(candidate.type);
+
+    // Aroma, palate, price, description
+    if (candidate.aromas || candidate.palate) {
+      const clamp = (v: number): PalateLevel => Math.max(1, Math.min(5, Math.round(v))) as PalateLevel;
+      setVisionResult({
+        label: { producer: "", name: "", country: "", region: "", subRegion: "", village: "", vintage: null, appellation: "", classification: "", abv: null, volume: null, bottler: "", grapeVarieties: [], aging: "", tasteType: "", certifications: [], type: "red" },
+        knowledge: {
+          priceRange: candidate.priceRange || { min: 0, max: 0 },
+          aromas: candidate.aromas || [],
+          palate: {
+            sweetness: clamp(candidate.palate?.sweetness ?? 3),
+            acidity: clamp(candidate.palate?.acidity ?? 3),
+            tannin: candidate.palate?.tannin != null ? clamp(candidate.palate.tannin) : null,
+            body: clamp(candidate.palate?.body ?? 3),
+            finish: clamp(candidate.palate?.finish ?? 3),
+          },
+          grapeBaseAromas: [],
+          grapeBasePalate: { sweetness: 3 as PalateLevel, acidity: 3 as PalateLevel, tannin: null, body: 3 as PalateLevel, finish: 3 as PalateLevel },
+          description: candidate.description || "",
+          producerUrl: candidate.producer_url || "",
+          confidence: candidate.confidence || "low",
+        },
+      });
+      setAromasInitialized(false);
+      setPalateInitialized(false);
+    }
+
+    if (candidate.priceRange?.min > 0) {
+      const mid = Math.round((candidate.priceRange.min + candidate.priceRange.max) / 2);
+      setPrice(String(mid));
+      setPriceHint(`¥${candidate.priceRange.min.toLocaleString()}〜¥${candidate.priceRange.max.toLocaleString()}`);
+    } else if (candidate.price) {
+      setPrice(String(candidate.price));
+    }
+
+    const conf = candidate.confidence === "high" ? "高" : candidate.confidence === "medium" ? "中" : "低";
+    setScanMessage(`検索完了（確度: ${conf}）${candidate.description ? ` - ${candidate.description}` : ""}`);
+
+    // Close the picker
+    setShowCandidates(false);
+    setCandidates([]);
   }
 
   // === Text search with Claude API ===
@@ -355,45 +432,63 @@ export default function NewWinePage() {
         return;
       }
 
-      // Apply lookup results
-      if (!grapes && data.suggestedGrapes?.length > 0) {
-        setGrapes(data.suggestedGrapes.join(", "));
-      }
-      if (!abv && data.suggestedAbv) setAbv(String(data.suggestedAbv));
-      if (!price && data.priceRange?.min > 0) {
-        const mid = Math.round((data.priceRange.min + data.priceRange.max) / 2);
-        setPrice(String(mid));
-        setPriceHint(`¥${data.priceRange.min.toLocaleString()}〜¥${data.priceRange.max.toLocaleString()}`);
-      }
+      // Handle new multi-candidate response format
+      if (data.candidates && Array.isArray(data.candidates)) {
+        if (data.exactMatch && data.candidates.length === 1) {
+          // Exact match with single candidate - auto-apply
+          applyCandidateResult(data.candidates[0]);
+        } else if (data.candidates.length > 1) {
+          // Multiple candidates - show picker
+          setCandidates(data.candidates);
+          setShowCandidates(true);
+          setScanMessage(`${data.candidates.length}件の候補が見つかりました。選択してください。`);
+        } else if (data.candidates.length === 1) {
+          // Single candidate but not exact match - still auto-apply
+          applyCandidateResult(data.candidates[0]);
+        } else {
+          setScanMessage("候補が見つかりませんでした");
+        }
+      } else {
+        // Legacy response format (single result, no candidates array)
+        if (!grapes && data.suggestedGrapes?.length > 0) {
+          setGrapes(data.suggestedGrapes.join(", "));
+        }
+        if (!abv && data.suggestedAbv) setAbv(String(data.suggestedAbv));
+        if (!price && data.priceRange?.min > 0) {
+          const mid = Math.round((data.priceRange.min + data.priceRange.max) / 2);
+          setPrice(String(mid));
+          setPriceHint(`¥${data.priceRange.min.toLocaleString()}〜¥${data.priceRange.max.toLocaleString()}`);
+        }
 
-      // Build a partial vision result for aroma/palate
-      if (data.aromas || data.palate) {
-        const clamp = (v: number): PalateLevel => Math.max(1, Math.min(5, Math.round(v))) as PalateLevel;
-        setVisionResult({
-          label: { producer: "", name: "", country: "", region: "", subRegion: "", village: "", vintage: null, appellation: "", classification: "", abv: null, volume: null, bottler: "", grapeVarieties: [], aging: "", tasteType: "", certifications: [], type: "red" },
-          knowledge: {
-            priceRange: data.priceRange || { min: 0, max: 0 },
-            aromas: data.aromas || [],
-            palate: {
-              sweetness: clamp(data.palate?.sweetness ?? 3),
-              acidity: clamp(data.palate?.acidity ?? 3),
-              tannin: data.palate?.tannin != null ? clamp(data.palate.tannin) : null,
-              body: clamp(data.palate?.body ?? 3),
-              finish: clamp(data.palate?.finish ?? 3),
+        // Build a partial vision result for aroma/palate
+        if (data.aromas || data.palate) {
+          const clamp = (v: number): PalateLevel => Math.max(1, Math.min(5, Math.round(v))) as PalateLevel;
+          setVisionResult({
+            label: { producer: "", name: "", country: "", region: "", subRegion: "", village: "", vintage: null, appellation: "", classification: "", abv: null, volume: null, bottler: "", grapeVarieties: [], aging: "", tasteType: "", certifications: [], type: "red" },
+            knowledge: {
+              priceRange: data.priceRange || { min: 0, max: 0 },
+              aromas: data.aromas || [],
+              palate: {
+                sweetness: clamp(data.palate?.sweetness ?? 3),
+                acidity: clamp(data.palate?.acidity ?? 3),
+                tannin: data.palate?.tannin != null ? clamp(data.palate.tannin) : null,
+                body: clamp(data.palate?.body ?? 3),
+                finish: clamp(data.palate?.finish ?? 3),
+              },
+              grapeBaseAromas: [],
+              grapeBasePalate: { sweetness: 3 as PalateLevel, acidity: 3 as PalateLevel, tannin: null, body: 3 as PalateLevel, finish: 3 as PalateLevel },
+              description: data.description || "",
+              producerUrl: "",
+              confidence: data.confidence || "low",
             },
-            grapeBaseAromas: [],
-            grapeBasePalate: { sweetness: 3 as PalateLevel, acidity: 3 as PalateLevel, tannin: null, body: 3 as PalateLevel, finish: 3 as PalateLevel },
-            description: data.description || "",
-            producerUrl: "",
-            confidence: data.confidence || "low",
-          },
-        });
-        setAromasInitialized(false);
-        setPalateInitialized(false);
-      }
+          });
+          setAromasInitialized(false);
+          setPalateInitialized(false);
+        }
 
-      const conf = data.confidence === "high" ? "高" : data.confidence === "medium" ? "中" : "低";
-      setScanMessage(`検索完了（確度: ${conf}）${data.description ? ` - ${data.description}` : ""}`);
+        const conf = data.confidence === "high" ? "高" : data.confidence === "medium" ? "中" : "低";
+        setScanMessage(`検索完了（確度: ${conf}）${data.description ? ` - ${data.description}` : ""}`);
+      }
     } catch {
       setScanMessage("検索に失敗しました");
     } finally {
@@ -515,7 +610,7 @@ export default function NewWinePage() {
     });
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const wine: WineLog = {
       id: uuidv4(),
       producer,
@@ -553,6 +648,12 @@ export default function NewWinePage() {
     };
 
     const result = addWine(wine);
+
+    // Save photo if one was captured
+    if (photoDataUrl) {
+      await saveWinePhoto(wine.id, photoDataUrl);
+    }
+
     setLogResult(result);
   }
 
@@ -765,7 +866,115 @@ export default function NewWinePage() {
             {scanMessage}
           </p>
         )}
+
+        {/* Photo thumbnail preview */}
+        {photoDataUrl && (
+          <div className="flex items-start gap-2 mt-3">
+            <img
+              src={photoDataUrl}
+              alt="Wine label photo"
+              className="rounded-lg object-cover"
+              style={{ maxHeight: 120 }}
+            />
+            <button
+              type="button"
+              onClick={() => setPhotoDataUrl(null)}
+              className="p-0.5 rounded-full bg-[#534343]/20 hover:bg-[#534343]/40 transition-colors"
+              aria-label="Remove photo"
+            >
+              <span className="material-symbols-outlined text-sm text-[#534343]">close</span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* ===== CANDIDATE PICKER OVERLAY ===== */}
+      {showCandidates && candidates.length > 0 && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => { setShowCandidates(false); setCandidates([]); }}
+          />
+          {/* Bottom sheet panel */}
+          <div className="relative bg-[#fcf9f3] rounded-t-3xl max-h-[75vh] flex flex-col shadow-2xl border-t border-[#d8c1c2]/30">
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-[#d8c1c2]/50" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-3">
+              <h2 className="font-headline text-lg text-[#1c1c18]">候補を選択</h2>
+              <button
+                onClick={() => { setShowCandidates(false); setCandidates([]); }}
+                className="p-1.5 rounded-full hover:bg-[#d8c1c2]/20 transition-colors"
+              >
+                <span className="material-symbols-outlined text-xl text-[#534343]">close</span>
+              </button>
+            </div>
+            {/* Candidate list */}
+            <div className="overflow-y-auto px-5 pb-6 space-y-3">
+              {candidates.map((c, idx) => {
+                const typeColor = c.type === "red" ? "#722f37"
+                  : c.type === "white" ? "#c9a84c"
+                  : c.type === "rose" ? "#d4768c"
+                  : c.type === "sparkling" ? "#8fa8b8"
+                  : c.type === "dessert" ? "#d4a574"
+                  : c.type === "fortified" ? "#8b5c2a"
+                  : c.type === "orange" ? "#d4884c"
+                  : "#534343";
+                const typeLabel = c.type ? (WINE_TYPE_LABELS[c.type as WineType]?.ja || c.type) : "";
+                const confLevel = c.confidence === "high" ? "高" : c.confidence === "medium" ? "中" : "低";
+                const confColor = c.confidence === "high" ? "#2d7a3a" : c.confidence === "medium" ? "#c9a84c" : "#534343";
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => applyCandidateResult(c)}
+                    className="w-full text-left bg-white rounded-2xl p-4 shadow-sm border border-[#d8c1c2]/20 hover:border-[#561922]/40 hover:shadow-md transition-all active:scale-[0.98]"
+                  >
+                    {/* Top row: type badge + confidence */}
+                    <div className="flex items-center justify-between mb-2">
+                      {typeLabel && (
+                        <span className="flex items-center gap-1.5 text-[10px] font-label tracking-wider uppercase" style={{ color: typeColor }}>
+                          <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: typeColor }} />
+                          {typeLabel}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-label tracking-wider" style={{ color: confColor }}>
+                        確度: {confLevel}
+                      </span>
+                    </div>
+                    {/* Producer */}
+                    {c.producer && (
+                      <div className="text-[11px] text-[#534343]/70 font-label tracking-wide mb-0.5">
+                        {c.producer}
+                      </div>
+                    )}
+                    {/* Wine name */}
+                    <div className="font-headline text-sm text-[#1c1c18] leading-snug">
+                      {c.name || c.producer || "Unknown Wine"}
+                      {c.vintage ? ` ${c.vintage}` : ""}
+                    </div>
+                    {/* Region / Country */}
+                    {(c.region || c.country) && (
+                      <div className="text-[11px] text-[#534343]/60 mt-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">location_on</span>
+                        {[c.region, c.country].filter(Boolean).join(", ")}
+                      </div>
+                    )}
+                    {/* Description */}
+                    {c.description && (
+                      <p className="text-[11px] text-[#534343]/50 mt-1.5 line-clamp-2 leading-relaxed">
+                        {c.description}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI description banner */}
       {visionResult?.knowledge.description && (
@@ -1151,13 +1360,16 @@ export default function NewWinePage() {
             <RadarChart
               data={radarData}
               baseData={radarBaseData}
-              size={200}
+              size={260}
+              levelLabels={Object.fromEntries(
+                Object.entries(PALATE_LABELS).map(([, meta]) => [meta.label, meta.levels])
+              )}
               interactive={true}
               onChange={(index, value) => palateSetters[index](value)}
             />
           </div>
           {radarBaseData && (
-            <div className="flex items-center justify-center gap-4 mb-4 text-[10px] text-[#534343]/60">
+            <div className="flex items-center justify-center gap-4 mb-2 text-[10px] text-[#534343]/60">
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-4 h-0.5 bg-[#d4a574] border-dashed border-t border-[#d4a574]" />
                 品種の特徴
@@ -1169,37 +1381,8 @@ export default function NewWinePage() {
             </div>
           )}
 
-          {/* Palate sliders */}
-          <div className="space-y-4 mb-2">
-            {Object.entries(PALATE_LABELS).map(([key, meta]) => {
-              if (key === "tannin" && !showTannin) return null;
-              const palateState: Record<string, { value: PalateLevel; set: (v: PalateLevel) => void }> = {
-                sweetness: { value: sweetness, set: setSweetness },
-                acidity: { value: acidity, set: setAcidity },
-                tannin: { value: tannin, set: setTannin },
-                body: { value: body, set: setBody },
-                finish: { value: finish, set: setFinish },
-              };
-              const state = palateState[key];
-              return (
-                <div key={key}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs text-[#1c1c18]">{meta.label}</span>
-                    <span className="text-[10px] text-[#561922] font-medium">{meta.levels[state.value - 1]}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={5}
-                    value={state.value}
-                    onChange={(e) => state.set(parseInt(e.target.value) as PalateLevel)}
-                    className="w-full accent-[#561922]"
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex justify-end mb-2">
+          {/* Reset button and drag instruction */}
+          <div className="flex flex-col items-center gap-1 mb-4">
             <button
               onClick={resetPalateDefaults}
               className="flex items-center gap-1 text-[10px] text-[#534343]/50 hover:text-[#561922] transition-colors"
@@ -1207,6 +1390,7 @@ export default function NewWinePage() {
               <span className="material-symbols-outlined text-xs">restart_alt</span>
               リセット
             </button>
+            <p className="text-[10px] text-[#534343]/40 text-center">ドラッグして味わいを調整</p>
           </div>
 
           {/* ---- AROMA SECTION ---- */}

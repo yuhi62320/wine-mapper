@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
+import {
+  buildRegionLookupKey,
+  getCachedRegion,
+  setCachedRegion,
+} from "@/lib/supabase-cache";
 
 function getAnthropicKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -39,6 +44,29 @@ export async function POST(req: NextRequest) {
       { error: "At least country is required" },
       { status: 400 }
     );
+  }
+
+  // Build cache lookup key from region hierarchy
+  const lookupKey = buildRegionLookupKey({
+    country: country ?? "",
+    region: region ?? "",
+    subRegion,
+    village,
+  });
+
+  // Check for force refresh flag
+  const forceRefresh = req.nextUrl.searchParams.get("force") === "true";
+
+  // Cache-first: return cached data if available
+  if (!forceRefresh) {
+    try {
+      const cached = await getCachedRegion(lookupKey);
+      if (cached) {
+        return NextResponse.json(cached.guide_data);
+      }
+    } catch (err) {
+      console.error("[region-guide] Cache read error:", err);
+    }
   }
 
   const grapeContext = grapeVarieties?.length
@@ -146,6 +174,19 @@ ${grapeContext}
     }
 
     const data = JSON.parse(jsonMatch[0]);
+
+    // Fire-and-forget: save result to cache
+    setCachedRegion({
+      lookupKey,
+      country: country ?? "",
+      region: region ?? "",
+      subRegion,
+      village,
+      guideData: data,
+    }).catch((err) =>
+      console.error("[region-guide] Cache write error:", err)
+    );
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("Region guide error:", err);

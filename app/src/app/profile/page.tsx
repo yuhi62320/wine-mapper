@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { UserProfile, WineLog } from "@/lib/types";
 import { getProfile, getWines } from "@/lib/store";
 import {
@@ -14,17 +15,24 @@ import {
   RARITY_POINTS,
   RARITY_LABELS,
 } from "@/lib/gamification";
+import { useAuth } from "@/components/auth-provider";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [wines, setWines] = useState<WineLog[]>([]);
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+      return;
+    }
     setProfile(getProfile());
     setWines(getWines());
-  }, []);
+  }, [loading, user, router]);
 
-  if (!profile) return null;
+  if (loading || !user || !profile) return null;
 
   const totalPoints = getTotalBadgePoints(profile, wines);
   const rank = getCurrentRank(totalPoints);
@@ -38,6 +46,19 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-surface pb-28">
       {/* ===== Hero Rank Card ===== */}
       <div className="bg-gradient-to-b from-primary to-stone-950 px-5 pt-10 pb-8 rounded-b-3xl">
+        {/* User info + sign out */}
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-xs text-white/50 font-label truncate max-w-[200px]">
+            {user.email}
+          </span>
+          <button
+            onClick={async () => { await signOut(); router.push("/login"); }}
+            className="text-[10px] text-white/40 hover:text-white/70 transition-colors font-label uppercase tracking-widest flex items-center gap-1"
+          >
+            <span className="material-symbols-outlined text-xs">logout</span>
+            ログアウト
+          </button>
+        </div>
         {/* Rank icon + name */}
         <div className="flex flex-col items-center text-center mb-5">
           <span className="text-5xl mb-2">{rank.icon}</span>

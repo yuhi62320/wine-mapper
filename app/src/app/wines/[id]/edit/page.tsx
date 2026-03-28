@@ -609,39 +609,26 @@ export default function EditWinePage() {
           {/* === TASTE PROFILE === */}
           <SectionDivider label="Taste Profile" />
           <div className="mt-3">
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-2">
               <RadarChart
                 data={palateKeys.map((k) => ({
                   label: PALATE_LABELS[k].label,
                   value: palateValues[k],
                 }))}
-                size={180}
+                size={260}
+                interactive={true}
+                onChange={(index: number, value: PalateLevel) => {
+                  const key = palateKeys[index];
+                  palateSetters[key](value);
+                }}
+                levelLabels={Object.fromEntries(
+                  palateKeys.map((k) => [PALATE_LABELS[k].label, PALATE_LABELS[k].levels])
+                )}
               />
             </div>
-            <div className="space-y-4">
-              {palateKeys.map((key) => (
-                <div key={key}>
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-[#1c1c18] font-medium">
-                      {PALATE_LABELS[key].label}
-                    </span>
-                    <span className="text-[#755b00] font-headline text-[11px]">
-                      {PALATE_LABELS[key].levels[palateValues[key] - 1]}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={5}
-                    value={palateValues[key]}
-                    onChange={(e) =>
-                      palateSetters[key](parseInt(e.target.value) as PalateLevel)
-                    }
-                    className="w-full accent-[#561922]"
-                  />
-                </div>
-              ))}
-            </div>
+            <p className="text-center text-xs text-[#534343]/60">
+              ドラッグして味わいを調整
+            </p>
           </div>
 
           {/* === TASTING NOTE === */}

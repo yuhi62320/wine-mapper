@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
+import {
+  buildWineLookupKey,
+  getCachedWine,
+  searchWineCandidates,
+  setCachedWine,
+  WineCacheRow,
+} from "@/lib/supabase-cache";
 
 function getAnthropicKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -31,6 +38,35 @@ export async function POST(req: NextRequest) {
   const { producer, name, vintage, country, region, grapeVarieties, type } =
     body;
 
+  // Build lookup key and check cache in parallel
+  const lookupKey = buildWineLookupKey({
+    producer,
+    name,
+    vintage,
+    country,
+    region,
+    type,
+  });
+
+  const [exactMatch, similarCandidates] = await Promise.all([
+    getCachedWine(lookupKey),
+    searchWineCandidates({ producer, name, country, region, type }),
+  ]);
+
+  // Filter out the exact match from similar candidates to avoid duplicates
+  const filteredCandidates = similarCandidates.filter(
+    (c) => c.lookup_key !== lookupKey
+  );
+
+  // If exact cache hit, return immediately without calling Claude API
+  if (exactMatch) {
+    return NextResponse.json({
+      candidates: [exactMatch, ...filteredCandidates],
+      exactMatch: true,
+    });
+  }
+
+  // Cache miss: call Claude API for enrichment
   const wineDescription = [
     producer && `Producer: ${producer}`,
     name && `Wine name: ${name}`,
@@ -53,7 +89,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 800,
+        max_tokens: 1200,
         messages: [
           {
             role: "user",
@@ -64,6 +100,21 @@ ${wineDescription}
 
 Return this exact JSON structure:
 {
+  "producer": "<producer/domaine/chateau name>",
+  "name": "<wine name / cuvee name>",
+  "country": "<country of origin>",
+  "region": "<wine region>",
+  "subRegion": "<sub-region if applicable, otherwise empty string>",
+  "village": "<village/commune if applicable, otherwise empty string>",
+  "appellation": "<appellation / AOC / DOCG etc., otherwise empty string>",
+  "classification": "<quality classification e.g. Premier Cru, Reserva, otherwise empty string>",
+  "grapeVarieties": [<grape variety names>],
+  "abv": <typical ABV as number or null>,
+  "aging": "<aging info e.g. Barrique 12 months, otherwise empty string>",
+  "tasteType": "<taste type e.g. Sec, Brut, Doux, otherwise empty string>",
+  "bottler": "<bottler info if known, otherwise empty string>",
+  "certifications": [<certifications like Bio, Organic, or empty array>],
+  "producerUrl": "<producer website URL if known, otherwise empty string>",
   "priceRange": { "min": <number in JPY>, "max": <number in JPY> },
   "aromas": [<up to 8 Japanese aroma descriptors specific to this wine, e.g. "カシス", "ヴァニラ", "黒胡椒">],
   "palate": {
@@ -74,7 +125,7 @@ Return this exact JSON structure:
     "finish": <1-5>
   },
   "description": "<1-2 sentence Japanese description of this specific wine's character>",
-  "suggestedGrapes": [<grape variety names if not provided, otherwise empty array>],
+  "suggestedGrapes": [<grape variety names if not provided in input, otherwise empty array>],
   "suggestedAbv": <typical ABV as number or null>,
   "confidence": "high" | "medium" | "low"
 }
@@ -109,7 +160,43 @@ Be specific to the actual wine, not generic. If the producer is famous (e.g., Ch
     }
 
     const data = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(data);
+
+    // Map Claude response + original request params into a WineCacheRow
+    const cacheRow: WineCacheRow = {
+      lookup_key: lookupKey,
+      producer: data.producer || producer || "",
+      name: data.name || name || "",
+      vintage: vintage ? Number(vintage) : undefined,
+      country: data.country || country || "",
+      region: data.region || region || "",
+      sub_region: data.subRegion || "",
+      village: data.village || "",
+      appellation: data.appellation || "",
+      classification: data.classification || "",
+      type: type || "",
+      grape_varieties: data.grapeVarieties || grapeVarieties || [],
+      abv: data.abv ?? data.suggestedAbv ?? null,
+      aging: data.aging || "",
+      taste_type: data.tasteType || "",
+      bottler: data.bottler || "",
+      certifications: data.certifications || [],
+      producer_url: data.producerUrl || "",
+      price_range: data.priceRange || null,
+      aromas: data.aromas || [],
+      palate: data.palate || null,
+      description: data.description || "",
+      confidence: data.confidence || "low",
+    };
+
+    // Save to cache (fire-and-forget, don't block the response)
+    setCachedWine(cacheRow).catch((err) =>
+      console.error("Failed to cache wine:", err)
+    );
+
+    return NextResponse.json({
+      candidates: [cacheRow, ...filteredCandidates],
+      exactMatch: false,
+    });
   } catch (err) {
     console.error("Wine lookup error:", err);
     return NextResponse.json(

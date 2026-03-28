@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS, PalateLevel } from "@/lib/types";
 import { getWines } from "@/lib/store";
+import { getWinePhoto } from "@/lib/photo-store";
 import { getDefaultPalate } from "@/lib/wine-defaults";
 import RadarChart from "@/components/radar-chart";
 import { getAromaVisual, AROMA_IMAGE_COPYRIGHT } from "@/lib/aroma-images";
@@ -23,12 +24,20 @@ export default function WineDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [wine, setWine] = useState<WineLog | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     const wines = getWines();
     const found = wines.find((w) => w.id === params.id);
     setWine(found || null);
   }, [params.id]);
+
+  // Load stored photo after wine is loaded
+  useEffect(() => {
+    if (wine) {
+      setPhoto(getWinePhoto(wine.id));
+    }
+  }, [wine]);
 
   if (!wine) {
     return (
@@ -87,66 +96,137 @@ export default function WineDetailPage() {
   return (
     <div className="min-h-screen bg-[#fcf9f3] pb-36">
       {/* ===== Hero Section ===== */}
-      <div className={`relative bg-gradient-to-br ${gradient} px-5 pt-12 pb-8`}>
-        {/* Back button */}
-        <button
-          onClick={() => router.back()}
-          className="absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white/90 hover:bg-white/25 transition-colors"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-        </button>
+      {photo ? (
+        <div className="relative">
+          {/* Wine photo hero image */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photo}
+            alt={wine.name || wine.producer || "Wine photo"}
+            className="w-full max-h-[300px] object-cover rounded-b-2xl"
+          />
+          {/* Gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent rounded-b-2xl" />
 
-        {/* Wine type pill */}
-        <div className="flex justify-end mb-4">
-          <span
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-label font-medium tracking-wide"
-            style={{
-              backgroundColor: WINE_TYPE_COLORS[wine.type] + "33",
-              color: "white",
-              border: "1px solid rgba(255,255,255,0.25)",
-            }}
+          {/* Back button */}
+          <button
+            onClick={() => router.back()}
+            className="absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white/90 hover:bg-white/25 transition-colors"
           >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+
+          {/* Wine type pill */}
+          <div className="absolute top-4 right-4">
             <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: WINE_TYPE_COLORS[wine.type] }}
-            />
-            {WINE_TYPE_LABELS[wine.type].ja}
-          </span>
-        </div>
-
-        {/* Wine name */}
-        <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl text-white leading-tight tracking-tight mb-2">
-          {wine.name || wine.producer}
-        </h1>
-
-        {/* Producer */}
-        {wine.producer && wine.name && wine.name !== wine.producer && (
-          <p className="font-body text-white/70 text-sm mb-3">{wine.producer}</p>
-        )}
-        {!wine.name && (
-          <p className="font-body text-white/70 text-sm mb-3">{wine.producer}</p>
-        )}
-
-        {/* Star rating */}
-        {wine.rating > 0 && (
-          <div className="flex items-center gap-1 mt-2">
-            {Array.from({ length: 5 }).map((_, i) => (
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-label font-medium tracking-wide"
+              style={{
+                backgroundColor: WINE_TYPE_COLORS[wine.type] + "33",
+                color: "white",
+                border: "1px solid rgba(255,255,255,0.25)",
+              }}
+            >
               <span
-                key={i}
-                className="material-symbols-outlined text-[22px]"
-                style={{
-                  color: i < wine.rating ? "#fed977" : "rgba(255,255,255,0.2)",
-                  fontVariationSettings: i < wine.rating
-                    ? "'FILL' 1, 'wght' 400"
-                    : "'FILL' 0, 'wght' 400",
-                }}
-              >
-                star
-              </span>
-            ))}
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: WINE_TYPE_COLORS[wine.type] }}
+              />
+              {WINE_TYPE_LABELS[wine.type].ja}
+            </span>
           </div>
-        )}
-      </div>
+
+          {/* Overlaid wine info at the bottom */}
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-6">
+            <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl text-white leading-tight tracking-tight mb-2 drop-shadow-lg">
+              {wine.name || wine.producer}
+            </h1>
+            {wine.producer && wine.name && wine.name !== wine.producer && (
+              <p className="font-body text-white/80 text-sm mb-3 drop-shadow">{wine.producer}</p>
+            )}
+            {!wine.name && (
+              <p className="font-body text-white/80 text-sm mb-3 drop-shadow">{wine.producer}</p>
+            )}
+            {wine.rating > 0 && (
+              <div className="flex items-center gap-1 mt-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="material-symbols-outlined text-[22px]"
+                    style={{
+                      color: i < wine.rating ? "#fed977" : "rgba(255,255,255,0.2)",
+                      fontVariationSettings: i < wine.rating
+                        ? "'FILL' 1, 'wght' 400"
+                        : "'FILL' 0, 'wght' 400",
+                    }}
+                  >
+                    star
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className={`relative bg-gradient-to-br ${gradient} px-5 pt-12 pb-8`}>
+          {/* Back button */}
+          <button
+            onClick={() => router.back()}
+            className="absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white/90 hover:bg-white/25 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+
+          {/* Wine type pill */}
+          <div className="flex justify-end mb-4">
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-label font-medium tracking-wide"
+              style={{
+                backgroundColor: WINE_TYPE_COLORS[wine.type] + "33",
+                color: "white",
+                border: "1px solid rgba(255,255,255,0.25)",
+              }}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: WINE_TYPE_COLORS[wine.type] }}
+              />
+              {WINE_TYPE_LABELS[wine.type].ja}
+            </span>
+          </div>
+
+          {/* Wine name */}
+          <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl text-white leading-tight tracking-tight mb-2">
+            {wine.name || wine.producer}
+          </h1>
+
+          {/* Producer */}
+          {wine.producer && wine.name && wine.name !== wine.producer && (
+            <p className="font-body text-white/70 text-sm mb-3">{wine.producer}</p>
+          )}
+          {!wine.name && (
+            <p className="font-body text-white/70 text-sm mb-3">{wine.producer}</p>
+          )}
+
+          {/* Star rating */}
+          {wine.rating > 0 && (
+            <div className="flex items-center gap-1 mt-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="material-symbols-outlined text-[22px]"
+                  style={{
+                    color: i < wine.rating ? "#fed977" : "rgba(255,255,255,0.2)",
+                    fontVariationSettings: i < wine.rating
+                      ? "'FILL' 1, 'wght' 400"
+                      : "'FILL' 0, 'wght' 400",
+                  }}
+                >
+                  star
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ===== Content ===== */}
       <div className="px-4 -mt-4 space-y-4">
