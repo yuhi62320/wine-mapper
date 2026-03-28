@@ -236,7 +236,7 @@ export default function WineDetailPage() {
             {/* Region */}
             {(wine.region || wine.country) && (
               <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Region</p>
+                <p className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-1">産地</p>
                 <p className="font-body text-sm font-bold text-[#1c1c18]">
                   {wine.region || wine.country}
                 </p>
@@ -249,13 +249,13 @@ export default function WineDetailPage() {
             {/* Grape */}
             {wine.grapeVarieties.length > 0 && (
               <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Grape</p>
+                <p className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-1">品種</p>
                 <p className="font-body text-sm font-bold text-[#1c1c18]">
                   {wine.grapeVarieties[0]}
                 </p>
                 {wine.grapeVarieties.length > 1 && (
                   <p className="font-body text-[11px] text-[#534343]">
-                    +{wine.grapeVarieties.length - 1} more
+                    他{wine.grapeVarieties.length - 1}種
                   </p>
                 )}
               </div>
@@ -264,7 +264,7 @@ export default function WineDetailPage() {
             {/* Vintage */}
             {wine.vintage && (
               <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Vintage</p>
+                <p className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-1">ヴィンテージ</p>
                 <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.vintage}</p>
               </div>
             )}
@@ -272,7 +272,7 @@ export default function WineDetailPage() {
             {/* Alcohol */}
             {wine.abv != null && (
               <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Alcohol</p>
+                <p className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-1">アルコール度数</p>
                 <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.abv}%</p>
               </div>
             )}
@@ -280,7 +280,7 @@ export default function WineDetailPage() {
             {/* Service / Taste type */}
             {wine.tasteType && (
               <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Service</p>
+                <p className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-1">味わいタイプ</p>
                 <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.tasteType}</p>
               </div>
             )}
@@ -288,7 +288,7 @@ export default function WineDetailPage() {
             {/* Price */}
             {wine.price != null && (
               <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Price</p>
+                <p className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-1">価格</p>
                 <p className="font-body text-sm font-bold text-[#1c1c18]">¥{wine.price.toLocaleString()}</p>
               </div>
             )}
@@ -296,7 +296,7 @@ export default function WineDetailPage() {
             {/* Volume */}
             {wine.volume != null && (
               <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Volume</p>
+                <p className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-1">容量</p>
                 <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.volume}ml</p>
               </div>
             )}
@@ -304,7 +304,7 @@ export default function WineDetailPage() {
             {/* Appellation */}
             {wine.appellation && (
               <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Appellation</p>
+                <p className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-1">格付け</p>
                 <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.appellation}</p>
               </div>
             )}
@@ -312,7 +312,7 @@ export default function WineDetailPage() {
             {/* Classification */}
             {wine.classification && (
               <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-1">Class</p>
+                <p className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-1">品質分類</p>
                 <p className="font-body text-sm font-bold text-[#1c1c18]">{wine.classification}</p>
               </div>
             )}
@@ -355,8 +355,8 @@ export default function WineDetailPage() {
         {/* ===== Tasting Notes Section ===== */}
         {wine.notes && (
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
-            <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-3">
-              Tasting Notes
+            <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-3">
+              テイスティングメモ
             </h2>
             <div className="border-l-2 border-[#755b00] pl-4">
               <p className="font-headline text-base italic text-[#1c1c18] leading-relaxed whitespace-pre-wrap">
@@ -369,8 +369,8 @@ export default function WineDetailPage() {
         {/* ===== Aroma Tags ===== */}
         {wine.aromas.length > 0 && (
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
-            <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-3">
-              Aromas
+            <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-3">
+              香り
             </h2>
             <div className="flex flex-wrap gap-2">
               {wine.aromas.map((a) => {
@@ -407,8 +407,8 @@ export default function WineDetailPage() {
 
         {/* ===== Radar Chart Section ===== */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
-          <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-4">
-            Palate Profile
+          <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-4">
+            味わいチャート
           </h2>
           <div className="flex justify-center">
             <RadarChart data={wineData} baseData={baseData} size={220} />
@@ -430,8 +430,8 @@ export default function WineDetailPage() {
         {/* ===== Region Guide Section ===== */}
         {wine.region && (
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
-            <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-3">
-              Region Guide
+            <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-3">
+              産地ガイド
             </h2>
             <div className="flex items-center gap-4">
               {/* Thumbnail placeholder with map pin icon */}
@@ -457,8 +457,8 @@ export default function WineDetailPage() {
         {/* ===== Winery Tours Section ===== */}
         {wine.tours && wine.tours.length > 0 && (
           <div className="space-y-3">
-            <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 px-1">
-              Winery Tours
+            <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 px-1">
+              ワイナリーツアー
             </h2>
             {wine.tours.map((tour, i) => (
               <div
@@ -536,8 +536,8 @@ export default function WineDetailPage() {
 
         {/* ===== Purchase Links ===== */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
-          <h2 className="font-label text-[10px] uppercase tracking-widest text-[#534343]/60 mb-3">
-            Purchase
+          <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-3">
+            購入リンク
           </h2>
           <div className="grid grid-cols-2 gap-2">
             {shops.map((shop) => (

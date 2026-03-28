@@ -104,8 +104,8 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 h-px bg-secondary/10" />
-          <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">
-            or
+          <span className="text-[10px] font-label text-on-surface-variant tracking-widest">
+            または
           </span>
           <div className="flex-1 h-px bg-secondary/10" />
         </div>
@@ -165,7 +165,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-xs text-on-surface-variant mt-6">
-          {isSignUp ? "既にアカウントをお持ちですか？" : "アカウントをお持ちでないですか？"}
+          {isSignUp ? "すでにアカウントをお持ちの方は" : "アカウントをお持ちでない方は"}
           <button
             onClick={() => {
               setIsSignUp(!isSignUp);

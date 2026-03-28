@@ -229,7 +229,7 @@ export default function EditWinePage() {
           >
             <span className="material-symbols-outlined text-[#1c1c18]">arrow_back</span>
           </button>
-          <h1 className="text-lg font-headline text-[#1c1c18]">Edit Wine</h1>
+          <h1 className="text-lg font-headline text-[#1c1c18]">ワインを編集</h1>
         </div>
       </header>
 
@@ -238,7 +238,7 @@ export default function EditWinePage() {
         <div className="bg-[#f6f3ed]/90 backdrop-blur-2xl rounded-[2rem] shadow-2xl p-8">
 
           {/* === WINE TYPE === */}
-          <SectionDivider label="Type" />
+          <SectionDivider label="タイプ" />
           <div className="flex flex-wrap gap-2 mt-3">
             {(Object.keys(WINE_TYPE_LABELS) as WineType[]).map((t) => (
               <button
@@ -259,7 +259,7 @@ export default function EditWinePage() {
           </div>
 
           {/* === REGISTRY === */}
-          <SectionDivider label="Registry" />
+          <SectionDivider label="基本情報" />
           <div className="space-y-1 mt-2">
             <div>
               <label className={labelCls}>生産者 *</label>
@@ -306,7 +306,7 @@ export default function EditWinePage() {
           </div>
 
           {/* === ORIGIN === */}
-          <SectionDivider label="Origin" />
+          <SectionDivider label="産地" />
           <div className="space-y-1 mt-2">
             <div>
               <label className={labelCls}>国</label>
@@ -400,7 +400,7 @@ export default function EditWinePage() {
           </div>
 
           {/* === DETAILS === */}
-          <SectionDivider label="Details" />
+          <SectionDivider label="詳細情報" />
           <div className="space-y-1 mt-2">
             <div>
               <label className={labelCls}>品種 (カンマ区切り)</label>
@@ -488,7 +488,7 @@ export default function EditWinePage() {
           </div>
 
           {/* === RATING === */}
-          <SectionDivider label="Rating" />
+          <SectionDivider label="評価" />
           <div className="flex gap-1 mt-3">
             {[1, 2, 3, 4, 5].map((s) => (
               <button
@@ -512,13 +512,13 @@ export default function EditWinePage() {
           </div>
 
           {/* === AROMAS === */}
-          <SectionDivider label="Aroma" />
+          <SectionDivider label="香り" />
           <div className="mt-3">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-[#534343]">
                 {selectedAromas.length > 0
-                  ? `${selectedAromas.length} selected`
-                  : "No aromas selected"}
+                  ? `${selectedAromas.length}件選択中`
+                  : "香りが未選択です"}
               </span>
               <button
                 onClick={() => setShowAromaPicker(!showAromaPicker)}
@@ -607,7 +607,7 @@ export default function EditWinePage() {
           </div>
 
           {/* === TASTE PROFILE === */}
-          <SectionDivider label="Taste Profile" />
+          <SectionDivider label="テイスティング" />
           <div className="mt-3">
             <div className="flex justify-center mb-2">
               <RadarChart
@@ -632,7 +632,7 @@ export default function EditWinePage() {
           </div>
 
           {/* === TASTING NOTE === */}
-          <SectionDivider label="Tasting Note" />
+          <SectionDivider label="メモ" />
           <div className="mt-3">
             <textarea
               value={notes}

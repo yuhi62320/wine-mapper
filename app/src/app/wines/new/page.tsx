@@ -816,7 +816,7 @@ export default function NewWinePage() {
         </button>
         <div className="flex items-center gap-1.5 text-[#1c1c18]">
           <span className="material-symbols-outlined text-lg text-[#c9a84c]">edit_note</span>
-          <span className="font-headline text-base tracking-wide">Wine Journal</span>
+          <span className="font-headline text-base tracking-wide">ワインジャーナル</span>
         </div>
         <div className="w-8" /> {/* Spacer for centering */}
       </header>
@@ -826,8 +826,8 @@ export default function NewWinePage() {
         <h1 className="font-headline text-[26px] text-[#1c1c18] leading-tight mb-1.5">
           新しくワインを記す
         </h1>
-        <p className="text-[11px] tracking-[0.25em] uppercase text-[#534343]/60 font-label">
-          The Sommelier&apos;s Ledger
+        <p className="text-[11px] tracking-[0.25em] text-[#534343]/60 font-label">
+          あなたのワイン体験を記録しよう
         </p>
       </div>
 
@@ -872,7 +872,7 @@ export default function NewWinePage() {
           <div className="flex items-start gap-2 mt-3">
             <img
               src={photoDataUrl}
-              alt="Wine label photo"
+              alt="ワインラベル写真"
               className="rounded-lg object-cover"
               style={{ maxHeight: 120 }}
             />
@@ -880,7 +880,7 @@ export default function NewWinePage() {
               type="button"
               onClick={() => setPhotoDataUrl(null)}
               className="p-0.5 rounded-full bg-[#534343]/20 hover:bg-[#534343]/40 transition-colors"
-              aria-label="Remove photo"
+              aria-label="写真を削除"
             >
               <span className="material-symbols-outlined text-sm text-[#534343]">close</span>
             </button>
@@ -952,7 +952,7 @@ export default function NewWinePage() {
                     )}
                     {/* Wine name */}
                     <div className="font-headline text-sm text-[#1c1c18] leading-snug">
-                      {c.name || c.producer || "Unknown Wine"}
+                      {c.name || c.producer || "不明なワイン"}
                       {c.vintage ? ` ${c.vintage}` : ""}
                     </div>
                     {/* Region / Country */}
@@ -997,7 +997,7 @@ export default function NewWinePage() {
         <div className="px-5 pt-6 pb-5">
 
           {/* ---- REGISTRY SECTION ---- */}
-          <SectionDivider label="Registry" />
+          <SectionDivider label="基本情報" />
 
           {/* Producer */}
           <div className="mb-5">
@@ -1353,7 +1353,7 @@ export default function NewWinePage() {
           </div>
 
           {/* ---- TASTE PROFILE SECTION ---- */}
-          <SectionDivider label="Taste Profile" />
+          <SectionDivider label="テイスティング" />
 
           {/* Radar Chart */}
           <div className="flex justify-center mb-3">
@@ -1394,7 +1394,7 @@ export default function NewWinePage() {
           </div>
 
           {/* ---- AROMA SECTION ---- */}
-          <SectionDivider label="Aroma" />
+          <SectionDivider label="香り" />
 
           {/* Selected aromas with images */}
           {selectedAromas.length > 0 && (
@@ -1516,7 +1516,7 @@ export default function NewWinePage() {
           )}
 
           {/* ---- TASTING NOTE SECTION ---- */}
-          <SectionDivider label="Tasting Note" />
+          <SectionDivider label="メモ" />
 
           <textarea
             value={notes}

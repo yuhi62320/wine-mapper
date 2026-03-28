@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS } from "@/lib/types";
 import { getWines, getProfile } from "@/lib/store";
+import { getWinePhoto } from "@/lib/photo-store";
 import {
   getCurrentRank,
   getNextRank,
@@ -16,10 +17,22 @@ import { UserProfile } from "@/lib/types";
 export default function HomePage() {
   const [wines, setWines] = useState<WineLog[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [photos, setPhotos] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setWines(getWines());
+    const loadedWines = getWines();
+    setWines(loadedWines);
     setProfile(getProfile());
+
+    // Load photos for each wine
+    const photoMap: Record<string, string> = {};
+    loadedWines.forEach((wine) => {
+      const photo = getWinePhoto(wine.id);
+      if (photo) {
+        photoMap[wine.id] = photo;
+      }
+    });
+    setPhotos(photoMap);
   }, []);
 
   const totalPoints = profile ? getTotalBadgePoints(profile, wines) : 0;
@@ -42,8 +55,8 @@ export default function HomePage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex flex-col items-end mr-2">
-            <span className="text-[10px] font-label text-secondary uppercase tracking-tighter">
-              Current Rank
+            <span className="text-[10px] font-label text-secondary tracking-tighter">
+              現在のランク
             </span>
             <span className="text-sm font-headline font-bold text-primary">
               {rank.nameJa}
@@ -72,8 +85,8 @@ export default function HomePage() {
         <section className="space-y-4">
           <div className="flex justify-between items-end mb-2">
             <div className="space-y-1">
-              <h2 className="text-xs font-label uppercase tracking-[0.2em] text-on-surface-variant">
-                Master Sommelier Path
+              <h2 className="text-xs font-label tracking-[0.2em] text-on-surface-variant">
+                ソムリエへの道
               </h2>
               <p className="text-xl font-headline font-bold text-primary">
                 熟成の旅路
@@ -84,7 +97,7 @@ export default function HomePage() {
                 {totalPoints}
               </span>
               <span className="text-xs font-label text-on-surface-variant">
-                {nextRank ? ` / ${nextRank.minXp} pts` : " pts"}
+                {nextRank ? ` / ${nextRank.minXp} pt` : " pt"}
               </span>
             </div>
           </div>
@@ -100,7 +113,7 @@ export default function HomePage() {
       {/* Stats Bento Grid */}
       {profile && (
         <section className="grid grid-cols-3 gap-4">
-          <div className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
+          <Link href="/wines" className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
             <span className="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors">
               wine_bar
             </span>
@@ -110,8 +123,8 @@ export default function HomePage() {
             <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest text-center">
               ワイン数
             </span>
-          </div>
-          <div className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
+          </Link>
+          <Link href="/map" className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
             <span className="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors">
               public
             </span>
@@ -121,8 +134,8 @@ export default function HomePage() {
             <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest text-center">
               探索国数
             </span>
-          </div>
-          <div className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
+          </Link>
+          <Link href="/wines" className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
             <span className="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors">
               temp_preferences_custom
             </span>
@@ -132,7 +145,7 @@ export default function HomePage() {
             <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest text-center">
               品種数
             </span>
-          </div>
+          </Link>
         </section>
       )}
 
@@ -183,28 +196,36 @@ export default function HomePage() {
                   href={`/wines/${wine.id}`}
                   className="group relative grid grid-cols-12 gap-6 items-center"
                 >
-                  {/* Wine color indicator */}
+                  {/* Wine photo or fallback color indicator */}
                   <div
                     className={`${
                       isFlipped ? "col-span-7 order-1" : "col-span-5"
                     } aspect-[3/4] overflow-hidden rounded-xl shadow-2xl bg-surface-container-low flex items-center justify-center`}
                   >
-                    <div className="flex flex-col items-center gap-3">
-                      <div
-                        className="w-16 h-24 rounded-lg"
-                        style={{
-                          backgroundColor:
-                            WINE_TYPE_COLORS[wine.type] + "30",
-                          border: `2px solid ${WINE_TYPE_COLORS[wine.type]}`,
-                        }}
+                    {photos[wine.id] ? (
+                      <img
+                        src={photos[wine.id]}
+                        alt={wine.name}
+                        className="w-full h-full object-cover"
                       />
-                      <span
-                        className="material-symbols-outlined text-4xl"
-                        style={{ color: WINE_TYPE_COLORS[wine.type] }}
-                      >
-                        wine_bar
-                      </span>
-                    </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-3">
+                        <div
+                          className="w-16 h-24 rounded-lg"
+                          style={{
+                            backgroundColor:
+                              WINE_TYPE_COLORS[wine.type] + "30",
+                            border: `2px solid ${WINE_TYPE_COLORS[wine.type]}`,
+                          }}
+                        />
+                        <span
+                          className="material-symbols-outlined text-4xl"
+                          style={{ color: WINE_TYPE_COLORS[wine.type] }}
+                        >
+                          wine_bar
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Wine info */}
@@ -249,7 +270,7 @@ export default function HomePage() {
                     <div className="space-y-1">
                       {wine.producer && (
                         <p className="text-sm font-body text-on-surface-variant">
-                          Producer: {wine.producer}
+                          {wine.producer}
                         </p>
                       )}
                       {wine.country && (

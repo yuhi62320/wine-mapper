@@ -1,12 +1,5 @@
 @import "tailwindcss";
-@import "@fontsource/noto-serif-jp/400.css";
-@import "@fontsource/noto-serif-jp/700.css";
-@import "@fontsource/noto-serif-jp/900.css";
-@import "@fontsource/plus-jakarta-sans/300.css";
-@import "@fontsource/plus-jakarta-sans/400.css";
-@import "@fontsource/plus-jakarta-sans/500.css";
-@import "@fontsource/plus-jakarta-sans/600.css";
-@import "@fontsource/plus-jakarta-sans/700.css";
+/* @fontsource imports removed - using Arial/system fonts for POP/modern style */
 
 /* === The Sommelier's Digital Ledger - Design System === */
 
@@ -74,13 +67,13 @@
   --color-cream: #fdf6e3;
 
   /* Font families */
-  --font-headline: "Noto Serif JP", serif;
-  --font-body: "Plus Jakarta Sans", sans-serif;
-  --font-label: "Plus Jakarta Sans", sans-serif;
+  --font-headline: Arial, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --font-body: Arial, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --font-label: Arial, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
 }
 
 body {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: Arial, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
   background-color: #fcf9f3;
   color: #1c1c18;
   -webkit-font-smoothing: antialiased;
@@ -89,7 +82,7 @@ body {
 
 /* Serif headline utility */
 .font-headline {
-  font-family: "Noto Serif JP", serif;
+  font-family: Arial, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
 }
 
 /* Material Symbols configuration */

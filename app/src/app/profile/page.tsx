@@ -65,7 +65,7 @@ export default function ProfilePage() {
           <h1 className="font-headline text-2xl text-white font-bold tracking-wide">
             {rank.nameJa}
           </h1>
-          <p className="text-white/50 text-sm font-body mt-0.5">{rank.name}</p>
+          <p className="text-white/50 text-xs font-body mt-0.5">{rank.name}</p>
         </div>
 
         {/* Badge point total */}
@@ -79,18 +79,18 @@ export default function ProfilePage() {
           <span className="text-white font-headline text-lg font-semibold">
             {totalPoints}
           </span>
-          <span className="text-white/50 text-sm font-body">Badge Pts</span>
+          <span className="text-white/50 text-sm font-body">ポイント</span>
         </div>
 
         {/* XP bar */}
         <div className="mx-2 mb-4">
           <div className="flex justify-between text-xs mb-1.5">
             <span className="text-white/70 font-body">
-              {totalPoints} pts
+              {totalPoints} pt
             </span>
             {nextRank && (
               <span className="text-white/40 font-body">
-                {nextRank.icon} {nextRank.nameJa} ({nextRank.minXp} pts)
+                {nextRank.icon} {nextRank.nameJa}まで {nextRank.minXp} pt
               </span>
             )}
           </div>
@@ -290,12 +290,12 @@ export default function ProfilePage() {
                       </span>
                       {isCurrent && (
                         <span className="text-[10px] bg-secondary/15 text-secondary font-body font-semibold px-1.5 py-0.5 rounded-full">
-                          NOW
+                          現在
                         </span>
                       )}
                     </div>
                     <span className="text-[11px] text-on-surface-variant font-body">
-                      {r.minXp} pts
+                      {r.minXp} pt
                     </span>
                   </div>
                 </div>

@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 
 const NAV_ITEMS = [
-  { href: "/", icon: "home", label: "HOME" },
-  { href: "/map", icon: "map", label: "MAP" },
-  { href: "/wines/new", icon: "add", label: "ADD", isCenter: true },
-  { href: "/profile", icon: "person", label: "PROFILE" },
+  { href: "/", icon: "home", label: "ホーム" },
+  { href: "/map", icon: "map", label: "マップ" },
+  { href: "/wines/new", icon: "add", label: "記録", isCenter: true },
+  { href: "/profile", icon: "person", label: "マイページ" },
 ];
 
 export function Navigation() {
@@ -25,7 +25,7 @@ export function Navigation() {
         const href =
           item.href === "/profile" && !user ? "/login" : item.href;
         const label =
-          item.href === "/profile" && !user ? "LOGIN" : item.label;
+          item.href === "/profile" && !user ? "ログイン" : item.label;
         const icon =
           item.href === "/profile" && !user ? "login" : item.icon;
 

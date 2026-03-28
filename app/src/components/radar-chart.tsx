@@ -292,7 +292,7 @@ export default function RadarChart({
             dominantBaseline="middle"
             fontSize={10}
             fill="white"
-            fontFamily="'Noto Serif JP', serif"
+            fontFamily="Arial, 'Hiragino Sans', sans-serif"
             fontWeight={500}
           >
             {tooltipInfo.text}
@@ -312,7 +312,7 @@ export default function RadarChart({
           fill="#534343"
           fontWeight={500}
           fontStyle="italic"
-          fontFamily="'Noto Serif JP', serif"
+          fontFamily="Arial, 'Hiragino Sans', sans-serif"
         >
           {d.label}
         </text>
