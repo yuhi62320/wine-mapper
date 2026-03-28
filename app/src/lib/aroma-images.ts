@@ -1,5 +1,5 @@
 // Aroma descriptor to image mapping
-// Uses Unsplash photos for each aroma category with copyright attribution
+// Uses local images in /aromas/ directory (80x80 PNG)
 // Mapping: Japanese aroma name -> { emoji, imageUrl }
 
 export interface AromaVisual {
@@ -10,146 +10,146 @@ export interface AromaVisual {
 // Per-descriptor image and emoji mapping
 const AROMA_VISUALS: Record<string, AromaVisual> = {
   // === Fruit - Citrus ===
-  "レモン": { emoji: "🍋", imageUrl: "https://images.unsplash.com/photo-1590502593747-42a996133562?w=80&h=80&fit=crop" },
-  "ライム": { emoji: "🍈", imageUrl: "https://images.unsplash.com/photo-1590502593747-42a996133562?w=80&h=80&fit=crop" },
-  "グレープフルーツ": { emoji: "🍊", imageUrl: "https://images.unsplash.com/photo-1577234286642-fc512a5f8f11?w=80&h=80&fit=crop" },
-  "オレンジ": { emoji: "🍊", imageUrl: "https://images.unsplash.com/photo-1547514701-42782101795e?w=80&h=80&fit=crop" },
-  "柚子": { emoji: "🟡", imageUrl: "https://images.unsplash.com/photo-1547514701-42782101795e?w=80&h=80&fit=crop" },
+  "レモン": { emoji: "🍋", imageUrl: "/aromas/lemon.png" },
+  "ライム": { emoji: "🍈", imageUrl: "/aromas/lime.png" },
+  "グレープフルーツ": { emoji: "🍊", imageUrl: "/aromas/grapefruit.png" },
+  "オレンジ": { emoji: "🍊", imageUrl: "/aromas/orange.png" },
+  "柚子": { emoji: "🟡", imageUrl: "/aromas/yuzu.png" },
 
   // === Fruit - Tree Fruit ===
-  "青りんご": { emoji: "🍏", imageUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=80&h=80&fit=crop" },
-  "赤りんご": { emoji: "🍎", imageUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=80&h=80&fit=crop" },
-  "洋梨": { emoji: "🍐", imageUrl: "https://images.unsplash.com/photo-1514756331096-242fdeb70d4a?w=80&h=80&fit=crop" },
-  "マルメロ": { emoji: "🍐", imageUrl: "https://images.unsplash.com/photo-1514756331096-242fdeb70d4a?w=80&h=80&fit=crop" },
+  "青りんご": { emoji: "🍏", imageUrl: "/aromas/green_apple.png" },
+  "赤りんご": { emoji: "🍎", imageUrl: "/aromas/red_apple.png" },
+  "洋梨": { emoji: "🍐", imageUrl: "/aromas/pear.png" },
+  "マルメロ": { emoji: "🍐", imageUrl: "/aromas/quince.png" },
 
   // === Fruit - Stone Fruit ===
-  "桃": { emoji: "🍑", imageUrl: "https://images.unsplash.com/photo-1629828874514-c1e5103f2100?w=80&h=80&fit=crop" },
-  "杏": { emoji: "🍑", imageUrl: "https://images.unsplash.com/photo-1629828874514-c1e5103f2100?w=80&h=80&fit=crop" },
-  "ネクタリン": { emoji: "🍑", imageUrl: "https://images.unsplash.com/photo-1629828874514-c1e5103f2100?w=80&h=80&fit=crop" },
-  "プラム": { emoji: "🫐", imageUrl: "https://images.unsplash.com/photo-1601493700631-2b16ec4b4716?w=80&h=80&fit=crop" },
+  "桃": { emoji: "🍑", imageUrl: "/aromas/peach.png" },
+  "杏": { emoji: "🍑", imageUrl: "/aromas/apricot.png" },
+  "ネクタリン": { emoji: "🍑", imageUrl: "/aromas/nectarine.png" },
+  "プラム": { emoji: "🫐", imageUrl: "/aromas/plum.png" },
 
   // === Fruit - Tropical ===
-  "パイナップル": { emoji: "🍍", imageUrl: "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=80&h=80&fit=crop" },
-  "マンゴー": { emoji: "🥭", imageUrl: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=80&h=80&fit=crop" },
-  "パッションフルーツ": { emoji: "🥝", imageUrl: "https://images.unsplash.com/photo-1604495772376-9657f0035eb5?w=80&h=80&fit=crop" },
-  "ライチ": { emoji: "🔴", imageUrl: "https://images.unsplash.com/photo-1604495772376-9657f0035eb5?w=80&h=80&fit=crop" },
-  "バナナ": { emoji: "🍌", imageUrl: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=80&h=80&fit=crop" },
-  "メロン": { emoji: "🍈", imageUrl: "https://images.unsplash.com/photo-1571575173700-afb9492e6a50?w=80&h=80&fit=crop" },
+  "パイナップル": { emoji: "🍍", imageUrl: "/aromas/pineapple.png" },
+  "マンゴー": { emoji: "🥭", imageUrl: "/aromas/mango.png" },
+  "パッションフルーツ": { emoji: "🥝", imageUrl: "/aromas/passion_fruit.png" },
+  "ライチ": { emoji: "🔴", imageUrl: "/aromas/lychee.png" },
+  "バナナ": { emoji: "🍌", imageUrl: "/aromas/banana.png" },
+  "メロン": { emoji: "🍈", imageUrl: "/aromas/melon.png" },
 
   // === Fruit - Red ===
-  "イチゴ": { emoji: "🍓", imageUrl: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=80&h=80&fit=crop" },
-  "ラズベリー": { emoji: "🫐", imageUrl: "https://images.unsplash.com/photo-1577003811926-53b099a67ea4?w=80&h=80&fit=crop" },
-  "さくらんぼ": { emoji: "🍒", imageUrl: "https://images.unsplash.com/photo-1528821128474-27f963b062bf?w=80&h=80&fit=crop" },
-  "クランベリー": { emoji: "🔴", imageUrl: "https://images.unsplash.com/photo-1577003811926-53b099a67ea4?w=80&h=80&fit=crop" },
-  "ザクロ": { emoji: "🔴", imageUrl: "https://images.unsplash.com/photo-1615485925600-97237c4fc1ec?w=80&h=80&fit=crop" },
+  "イチゴ": { emoji: "🍓", imageUrl: "/aromas/strawberry.png" },
+  "ラズベリー": { emoji: "🫐", imageUrl: "/aromas/raspberry.png" },
+  "さくらんぼ": { emoji: "🍒", imageUrl: "/aromas/cherry.png" },
+  "クランベリー": { emoji: "🔴", imageUrl: "/aromas/cranberry.png" },
+  "ザクロ": { emoji: "🔴", imageUrl: "/aromas/pomegranate.png" },
 
   // === Fruit - Black ===
-  "ブラックベリー": { emoji: "🫐", imageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=80&h=80&fit=crop" },
-  "カシス": { emoji: "🫐", imageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=80&h=80&fit=crop" },
-  "ブルーベリー": { emoji: "🫐", imageUrl: "https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=80&h=80&fit=crop" },
-  "ブラックプラム": { emoji: "🟣", imageUrl: "https://images.unsplash.com/photo-1601493700631-2b16ec4b4716?w=80&h=80&fit=crop" },
+  "ブラックベリー": { emoji: "🫐", imageUrl: "/aromas/blackberry.png" },
+  "カシス": { emoji: "🫐", imageUrl: "/aromas/blackcurrant.png" },
+  "ブルーベリー": { emoji: "🫐", imageUrl: "/aromas/blueberry.png" },
+  "ブラックプラム": { emoji: "🟣", imageUrl: "/aromas/black_plum.png" },
 
   // === Fruit - Dried ===
-  "レーズン": { emoji: "🍇", imageUrl: "https://images.unsplash.com/photo-1596363505729-4190a9506133?w=80&h=80&fit=crop" },
-  "イチジク": { emoji: "🟤", imageUrl: "https://images.unsplash.com/photo-1601379327928-bedfaf3da21a?w=80&h=80&fit=crop" },
-  "デーツ": { emoji: "🟤", imageUrl: "https://images.unsplash.com/photo-1601379327928-bedfaf3da21a?w=80&h=80&fit=crop" },
-  "プルーン": { emoji: "🟣", imageUrl: "https://images.unsplash.com/photo-1601493700631-2b16ec4b4716?w=80&h=80&fit=crop" },
+  "レーズン": { emoji: "🍇", imageUrl: "/aromas/raisin.png" },
+  "イチジク": { emoji: "🟤", imageUrl: "/aromas/fig.png" },
+  "デーツ": { emoji: "🟤", imageUrl: "/aromas/date.png" },
+  "プルーン": { emoji: "🟣", imageUrl: "/aromas/prune.png" },
 
   // === Floral - White ===
-  "ジャスミン": { emoji: "🤍", imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=80&h=80&fit=crop" },
-  "オレンジの花": { emoji: "🌸", imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=80&h=80&fit=crop" },
-  "スイカズラ": { emoji: "🌼", imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=80&h=80&fit=crop" },
-  "アカシア": { emoji: "🌼", imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=80&h=80&fit=crop" },
-  "エルダーフラワー": { emoji: "🌿", imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=80&h=80&fit=crop" },
+  "ジャスミン": { emoji: "🤍", imageUrl: "/aromas/jasmine.png" },
+  "オレンジの花": { emoji: "🌸", imageUrl: "/aromas/orange_blossom.png" },
+  "スイカズラ": { emoji: "🌼", imageUrl: "/aromas/honeysuckle.png" },
+  "アカシア": { emoji: "🌼", imageUrl: "/aromas/acacia.png" },
+  "エルダーフラワー": { emoji: "🌿", imageUrl: "/aromas/elderflower.png" },
 
   // === Floral - Red ===
-  "バラ": { emoji: "🌹", imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=80&h=80&fit=crop" },
-  "スミレ": { emoji: "🟣", imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=80&h=80&fit=crop" },
-  "シャクヤク": { emoji: "🌺", imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=80&h=80&fit=crop" },
-  "ラベンダー": { emoji: "💜", imageUrl: "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=80&h=80&fit=crop" },
-  "ハイビスカス": { emoji: "🌺", imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=80&h=80&fit=crop" },
+  "バラ": { emoji: "🌹", imageUrl: "/aromas/rose.png" },
+  "スミレ": { emoji: "🟣", imageUrl: "/aromas/violet.png" },
+  "シャクヤク": { emoji: "🌺", imageUrl: "/aromas/peony.png" },
+  "ラベンダー": { emoji: "💜", imageUrl: "/aromas/lavender.png" },
+  "ハイビスカス": { emoji: "🌺", imageUrl: "/aromas/hibiscus.png" },
 
   // === Herbal - Fresh ===
-  "ミント": { emoji: "🌿", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
-  "バジル": { emoji: "🌿", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
-  "タイム": { emoji: "🌿", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
-  "ローズマリー": { emoji: "🌿", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
-  "紫蘇": { emoji: "🌿", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
+  "ミント": { emoji: "🌿", imageUrl: "/aromas/mint.png" },
+  "バジル": { emoji: "🌿", imageUrl: "/aromas/basil.png" },
+  "タイム": { emoji: "🌿", imageUrl: "/aromas/thyme.png" },
+  "ローズマリー": { emoji: "🌿", imageUrl: "/aromas/rosemary.png" },
+  "紫蘇": { emoji: "🌿", imageUrl: "/aromas/shiso.png" },
 
   // === Herbal - Green ===
-  "刈りたての草": { emoji: "🌱", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
-  "ピーマン": { emoji: "🫑", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
-  "ユーカリ": { emoji: "🌿", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
-  "グリーンオリーブ": { emoji: "🫒", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
+  "刈りたての草": { emoji: "🌱", imageUrl: "/aromas/fresh_cut_grass.png" },
+  "ピーマン": { emoji: "🫑", imageUrl: "/aromas/green_bell_pepper.png" },
+  "ユーカリ": { emoji: "🌿", imageUrl: "/aromas/eucalyptus.png" },
+  "グリーンオリーブ": { emoji: "🫒", imageUrl: "/aromas/green_olive.png" },
 
   // === Herbal - Dried ===
-  "干し草": { emoji: "🌾", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
-  "紅茶": { emoji: "🍵", imageUrl: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=80&h=80&fit=crop" },
-  "タバコ": { emoji: "🍂", imageUrl: "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=80&h=80&fit=crop" },
+  "干し草": { emoji: "🌾", imageUrl: "/aromas/hay.png" },
+  "紅茶": { emoji: "🍵", imageUrl: "/aromas/black_tea.png" },
+  "タバコ": { emoji: "🍂", imageUrl: "/aromas/tobacco.png" },
 
   // === Spice - Sweet ===
-  "バニラ": { emoji: "🍦", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
-  "シナモン": { emoji: "🟤", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
-  "クローブ": { emoji: "🟤", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
-  "ナツメグ": { emoji: "🟤", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
-  "アニス": { emoji: "⭐", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
-  "リコリス": { emoji: "🖤", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
+  "バニラ": { emoji: "🍦", imageUrl: "/aromas/vanilla.png" },
+  "シナモン": { emoji: "🟤", imageUrl: "/aromas/cinnamon.png" },
+  "クローブ": { emoji: "🟤", imageUrl: "/aromas/clove.png" },
+  "ナツメグ": { emoji: "🟤", imageUrl: "/aromas/nutmeg.png" },
+  "アニス": { emoji: "⭐", imageUrl: "/aromas/anise.png" },
+  "リコリス": { emoji: "🖤", imageUrl: "/aromas/licorice.png" },
 
   // === Spice - Pungent ===
-  "黒胡椒": { emoji: "🌶️", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
-  "白胡椒": { emoji: "⚪", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
-  "ショウガ": { emoji: "🫚", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
-  "山椒": { emoji: "🌿", imageUrl: "https://images.unsplash.com/photo-1602524206684-fdf1ff293830?w=80&h=80&fit=crop" },
+  "黒胡椒": { emoji: "🌶️", imageUrl: "/aromas/black_pepper.png" },
+  "白胡椒": { emoji: "⚪", imageUrl: "/aromas/white_pepper.png" },
+  "ショウガ": { emoji: "🫚", imageUrl: "/aromas/ginger.png" },
+  "山椒": { emoji: "🌿", imageUrl: "/aromas/sansho_pepper.png" },
 
   // === Earth / Mineral ===
-  "濡れた石": { emoji: "🪨", imageUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=80&h=80&fit=crop" },
-  "火打ち石": { emoji: "🪨", imageUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=80&h=80&fit=crop" },
-  "スレート": { emoji: "🪨", imageUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=80&h=80&fit=crop" },
-  "チョーク": { emoji: "⬜", imageUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=80&h=80&fit=crop" },
-  "海塩": { emoji: "🧂", imageUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=80&h=80&fit=crop" },
-  "森の土": { emoji: "🌲", imageUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=80&h=80&fit=crop" },
-  "キノコ": { emoji: "🍄", imageUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=80&h=80&fit=crop" },
-  "トリュフ": { emoji: "🟤", imageUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=80&h=80&fit=crop" },
-  "濡れた土": { emoji: "🟫", imageUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=80&h=80&fit=crop" },
+  "濡れた石": { emoji: "🪨", imageUrl: "/aromas/wet_stone.png" },
+  "火打ち石": { emoji: "🪨", imageUrl: "/aromas/flint.png" },
+  "スレート": { emoji: "🪨", imageUrl: "/aromas/slate.png" },
+  "チョーク": { emoji: "⬜", imageUrl: "/aromas/chalk.png" },
+  "海塩": { emoji: "🧂", imageUrl: "/aromas/sea_salt.png" },
+  "森の土": { emoji: "🌲", imageUrl: "/aromas/forest_soil.png" },
+  "キノコ": { emoji: "🍄", imageUrl: "/aromas/mushroom.png" },
+  "トリュフ": { emoji: "🟤", imageUrl: "/aromas/truffle.png" },
+  "濡れた土": { emoji: "🟫", imageUrl: "/aromas/wet_earth.png" },
 
   // === Wood / Oak ===
-  "オーク": { emoji: "🪵", imageUrl: "https://images.unsplash.com/photo-1597580352457-3a5ae3aa6e84?w=80&h=80&fit=crop" },
-  "シダー": { emoji: "🌲", imageUrl: "https://images.unsplash.com/photo-1597580352457-3a5ae3aa6e84?w=80&h=80&fit=crop" },
-  "白檀": { emoji: "🪵", imageUrl: "https://images.unsplash.com/photo-1597580352457-3a5ae3aa6e84?w=80&h=80&fit=crop" },
-  "スモーク": { emoji: "💨", imageUrl: "https://images.unsplash.com/photo-1597580352457-3a5ae3aa6e84?w=80&h=80&fit=crop" },
-  "トースト": { emoji: "🍞", imageUrl: "https://images.unsplash.com/photo-1597580352457-3a5ae3aa6e84?w=80&h=80&fit=crop" },
-  "コーヒー": { emoji: "☕", imageUrl: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=80&h=80&fit=crop" },
-  "炭": { emoji: "🖤", imageUrl: "https://images.unsplash.com/photo-1597580352457-3a5ae3aa6e84?w=80&h=80&fit=crop" },
+  "オーク": { emoji: "🪵", imageUrl: "/aromas/oak.png" },
+  "シダー": { emoji: "🌲", imageUrl: "/aromas/cedar.png" },
+  "白檀": { emoji: "🪵", imageUrl: "/aromas/sandalwood.png" },
+  "スモーク": { emoji: "💨", imageUrl: "/aromas/smoke.png" },
+  "トースト": { emoji: "🍞", imageUrl: "/aromas/toast.png" },
+  "コーヒー": { emoji: "☕", imageUrl: "/aromas/coffee.png" },
+  "炭": { emoji: "🖤", imageUrl: "/aromas/charcoal.png" },
 
   // === Nutty / Sweet ===
-  "アーモンド": { emoji: "🥜", imageUrl: "https://images.unsplash.com/photo-1574570068235-d5dff17be426?w=80&h=80&fit=crop" },
-  "ヘーゼルナッツ": { emoji: "🌰", imageUrl: "https://images.unsplash.com/photo-1574570068235-d5dff17be426?w=80&h=80&fit=crop" },
-  "クルミ": { emoji: "🥜", imageUrl: "https://images.unsplash.com/photo-1574570068235-d5dff17be426?w=80&h=80&fit=crop" },
-  "蜂蜜": { emoji: "🍯", imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=80&h=80&fit=crop" },
-  "キャラメル": { emoji: "🍬", imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=80&h=80&fit=crop" },
-  "チョコレート": { emoji: "🍫", imageUrl: "https://images.unsplash.com/photo-1481391319762-47dff72954d9?w=80&h=80&fit=crop" },
-  "バター": { emoji: "🧈", imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=80&h=80&fit=crop" },
-  "バタースコッチ": { emoji: "🍬", imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=80&h=80&fit=crop" },
+  "アーモンド": { emoji: "🥜", imageUrl: "/aromas/almond.png" },
+  "ヘーゼルナッツ": { emoji: "🌰", imageUrl: "/aromas/hazelnut.png" },
+  "クルミ": { emoji: "🥜", imageUrl: "/aromas/walnut.png" },
+  "蜂蜜": { emoji: "🍯", imageUrl: "/aromas/honey.png" },
+  "キャラメル": { emoji: "🍬", imageUrl: "/aromas/caramel.png" },
+  "チョコレート": { emoji: "🍫", imageUrl: "/aromas/chocolate.png" },
+  "バター": { emoji: "🧈", imageUrl: "/aromas/butter.png" },
+  "バタースコッチ": { emoji: "🍬", imageUrl: "/aromas/butterscotch.png" },
 
   // === Dairy / Yeast ===
-  "ブリオッシュ": { emoji: "🥐", imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&h=80&fit=crop" },
-  "ビスケット": { emoji: "🍪", imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&h=80&fit=crop" },
-  "パン生地": { emoji: "🍞", imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&h=80&fit=crop" },
-  "クリーム": { emoji: "🥛", imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&h=80&fit=crop" },
-  "ヨーグルト": { emoji: "🥛", imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&h=80&fit=crop" },
+  "ブリオッシュ": { emoji: "🥐", imageUrl: "/aromas/brioche.png" },
+  "ビスケット": { emoji: "🍪", imageUrl: "/aromas/biscuit.png" },
+  "パン生地": { emoji: "🍞", imageUrl: "/aromas/bread_dough.png" },
+  "クリーム": { emoji: "🥛", imageUrl: "/aromas/cream.png" },
+  "ヨーグルト": { emoji: "🥛", imageUrl: "/aromas/yogurt.png" },
 
   // === Savory ===
-  "なめし革": { emoji: "🟤", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=80&h=80&fit=crop" },
-  "ジビエ": { emoji: "🥩", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=80&h=80&fit=crop" },
-  "醤油": { emoji: "🫘", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=80&h=80&fit=crop" },
-  "出汁": { emoji: "🍲", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=80&h=80&fit=crop" },
-  "海苔": { emoji: "🟢", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=80&h=80&fit=crop" },
-  "シャルキュトリ": { emoji: "🥩", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=80&h=80&fit=crop" },
+  "なめし革": { emoji: "🟤", imageUrl: "/aromas/leather.png" },
+  "ジビエ": { emoji: "🥩", imageUrl: "/aromas/game_meat.png" },
+  "醤油": { emoji: "🫘", imageUrl: "/aromas/soy_sauce.png" },
+  "出汁": { emoji: "🍲", imageUrl: "/aromas/dashi.png" },
+  "海苔": { emoji: "🟢", imageUrl: "/aromas/nori.png" },
+  "シャルキュトリ": { emoji: "🥩", imageUrl: "/aromas/charcuterie.png" },
 };
 
 export function getAromaVisual(aromaJa: string): AromaVisual {
   return AROMA_VISUALS[aromaJa] || { emoji: "🍷", imageUrl: "" };
 }
 
-// Copyright notice
-export const AROMA_IMAGE_COPYRIGHT = "Photos: Unsplash / CC0";
+// Copyright notice (images are custom-generated, no external attribution needed)
+export const AROMA_IMAGE_COPYRIGHT = "";
