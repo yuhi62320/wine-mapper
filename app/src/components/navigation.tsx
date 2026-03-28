@@ -2,45 +2,70 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wine, Map, PlusCircle, User } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/", icon: Wine, label: "ワイン" },
-  { href: "/map", icon: Map, label: "マップ" },
-  { href: "/wines/new", icon: PlusCircle, label: "記録" },
-  { href: "/profile", icon: User, label: "プロフィール" },
+  { href: "/", icon: "home", label: "HOME" },
+  { href: "/map", icon: "map", label: "MAP" },
+  { href: "/wines/new", icon: "add", label: "ADD", isCenter: true },
+  { href: "/profile", icon: "person", label: "PROFILE" },
 ];
 
 export function Navigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-      <div className="max-w-lg mx-auto flex justify-around">
-        {NAV_ITEMS.map((item) => {
-          const isActive =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
+    <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-8 pb-8 pt-4 bg-[#fcf9f3]/80 backdrop-blur-xl border-t border-[#722f37]/5 shadow-[0_-4px_20px_rgba(86,25,34,0.04)] rounded-t-[2rem]">
+      {NAV_ITEMS.map((item) => {
+        const isActive =
+          item.href === "/"
+            ? pathname === "/"
+            : pathname.startsWith(item.href);
+
+        if (item.isCenter) {
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center py-2 px-4 text-xs transition-colors ${
-                isActive
-                  ? "text-[#722f37]"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
+              className="flex flex-col items-center justify-center text-stone-400 hover:text-[#c9a84c] transition-colors"
             >
-              <item.icon
-                size={22}
-                strokeWidth={isActive ? 2.5 : 1.5}
-              />
-              <span className="mt-1">{item.label}</span>
+              <div className="w-12 h-12 -mt-10 bg-primary shadow-xl rounded-full flex items-center justify-center text-white border-4 border-surface">
+                <span className="material-symbols-outlined text-2xl">
+                  {item.icon}
+                </span>
+              </div>
+              <span className="text-[10px] uppercase tracking-[0.2em] font-medium mt-1">
+                {item.label}
+              </span>
             </Link>
           );
-        })}
-      </div>
+        }
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`flex flex-col items-center justify-center transition-all duration-300 ${
+              isActive
+                ? "text-[#722f37] scale-110"
+                : "text-stone-400 hover:text-[#c9a84c]"
+            }`}
+          >
+            <span
+              className="material-symbols-outlined mb-1"
+              style={
+                isActive
+                  ? { fontVariationSettings: "'FILL' 1" }
+                  : undefined
+              }
+            >
+              {item.icon}
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.2em] font-medium">
+              {item.label}
+            </span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

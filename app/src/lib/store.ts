@@ -150,7 +150,30 @@ function parseISOWeek(weekStr: string): Date {
   return jan4;
 }
 
+export function updateWine(wine: WineLog) {
+  const wines = getWines();
+  const idx = wines.findIndex((w) => w.id === wine.id);
+  if (idx !== -1) {
+    wines[idx] = wine;
+    saveWines(wines);
+  }
+}
+
 export function deleteWine(id: string) {
   const wines = getWines().filter((w) => w.id !== id);
   saveWines(wines);
+}
+
+export function getWinesByCountry(country: string): WineLog[] {
+  return getWines().filter((w) => w.country === country);
+}
+
+export function getWinesByRegion(country: string, region: string): WineLog[] {
+  return getWines().filter((w) => w.country === country && w.region === region);
+}
+
+export function getWinesBySubRegion(country: string, region: string, subRegion: string): WineLog[] {
+  return getWines().filter(
+    (w) => w.country === country && w.region === region && w.subRegion === subRegion
+  );
 }
