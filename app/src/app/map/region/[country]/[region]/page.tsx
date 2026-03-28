@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { WINE_COUNTRIES, findRegion } from "@/lib/countries";
 import { getRegionContent } from "@/lib/region-content";
 import { getWinesByRegion } from "@/lib/store";
@@ -199,15 +200,15 @@ export default function RegionPage({ params }: Props) {
           </h3>
           <div className="flex flex-wrap gap-2">
             {wineRegion.subRegions.map((sr) => (
-              <span
+              <Link
                 key={sr.name}
-                className="px-4 py-2 text-xs bg-surface-container-low text-on-surface-variant rounded-xl"
+                href={`/map/region/${countryCode}/${encodeURIComponent(regionName)}/${encodeURIComponent(sr.name)}`}
+                className="px-4 py-2 text-xs bg-surface-container-low text-on-surface-variant rounded-xl hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-2"
               >
+                <span className="material-symbols-outlined text-sm">chevron_right</span>
                 {sr.nameJa}
-                <span className="text-on-surface-variant/40 ml-2">
-                  {sr.name}
-                </span>
-              </span>
+                <span className="text-on-surface-variant/40 ml-1">{sr.name}</span>
+              </Link>
             ))}
           </div>
         </section>
