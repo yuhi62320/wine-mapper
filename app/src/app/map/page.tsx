@@ -1,15 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { getWines, getWinesByCountry } from "@/lib/store";
+import { getWines, getWinesByCountry, getProfile } from "@/lib/store";
 import { WINE_COUNTRIES } from "@/lib/countries";
 import { WineLog } from "@/lib/types";
 import WineMap, { CountryStats } from "@/components/wine-map";
 import StylizedMap from "@/components/stylized-map";
 import WineListMini from "@/components/wine-list-mini";
+import {
+  getCurrentRank,
+  getNextRank,
+  getRankProgress,
+  getTotalBadgePoints,
+} from "@/lib/gamification";
 
 type MapMode = "real" | "stylized";
+
+/**
+ * Return an adventure-flavored message based on exploration progress.
+ */
+function getAdventureMessage(
+  exploredCount: number,
+  wineCount: number
+): string {
+  if (wineCount === 0) return "まだ見ぬ産地があなたを待っている。";
+  if (exploredCount <= 1) return "冒険は始まったばかり。";
+  if (exploredCount <= 3) return "旧世界のテロワールを探る旅路。";
+  if (exploredCount <= 6) return "新大陸のテロワールが呼んでいる。";
+  if (exploredCount <= 10) return "世界の味覚地図が広がっていく。";
+  return "あなたはまさにワインの冒険家だ。";
+}
 
 export default function MapPage() {
   const [stats, setStats] = useState<Map<string, CountryStats>>(new Map());
@@ -17,7 +38,7 @@ export default function MapPage() {
     null
   );
   const [wines, setWines] = useState<WineLog[]>([]);
-  const [mapMode, setMapMode] = useState<MapMode>("stylized");
+  const [mapMode, setMapMode] = useState<MapMode>("real");
 
   useEffect(() => {
     const allWines = getWines();
@@ -46,6 +67,30 @@ export default function MapPage() {
     setStats(countryMap);
   }, []);
 
+  // Gamification data
+  const profile = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    return getProfile();
+  }, [wines]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const totalBadgePoints = useMemo(() => {
+    if (!profile) return 0;
+    return getTotalBadgePoints(profile, wines);
+  }, [profile, wines]);
+
+  const currentRank = useMemo(
+    () => getCurrentRank(totalBadgePoints),
+    [totalBadgePoints]
+  );
+  const nextRank = useMemo(
+    () => getNextRank(totalBadgePoints),
+    [totalBadgePoints]
+  );
+  const rankProgress = useMemo(
+    () => getRankProgress(totalBadgePoints),
+    [totalBadgePoints]
+  );
+
   const explored = Array.from(stats.values()).filter((s) => s.explored);
   const totalCountries = WINE_COUNTRIES.length;
   const exploredCount = explored.length;
@@ -54,80 +99,113 @@ export default function MapPage() {
     ? getWinesByCountry(selectedCountry.country.name)
     : [];
 
+  const adventureMessage = getAdventureMessage(exploredCount, wines.length);
+
   return (
-    <div className="flex flex-col min-h-[calc(100vh-6rem)]">
-      {/* Toggle Switch */}
-      <section className="flex flex-col items-center pt-8 mb-8 px-4">
-        <div className="inline-flex p-1 bg-surface-container-low rounded-full">
-          <button
-            onClick={() => {
-              setMapMode("real");
-              setSelectedCountry(null);
-            }}
-            className={`px-8 py-2.5 rounded-full font-label text-sm transition-all duration-500 ${
-              mapMode === "real"
-                ? "bg-primary-container text-on-primary shadow-sm"
-                : "text-on-surface-variant hover:text-primary"
-            }`}
-          >
-            地図モード
-          </button>
+    <div className="relative flex flex-col" style={{ height: "calc(100vh - 5.5rem)" }}>
+      {/* ===== IMMERSIVE MAP MODE (default) ===== */}
+      {mapMode === "real" ? (
+        <>
+          {/* Full-screen map */}
+          <div className="absolute inset-0 z-0">
+            <WineMap
+              stats={stats}
+              wines={wines}
+              onSelectCountry={setSelectedCountry}
+            />
+          </div>
+
+          {/* Floating toggle button — top right */}
           <button
             onClick={() => {
               setMapMode("stylized");
               setSelectedCountry(null);
             }}
-            className={`px-8 py-2.5 rounded-full font-label text-sm transition-all duration-500 ${
-              mapMode === "stylized"
-                ? "bg-primary-container text-on-primary shadow-sm"
-                : "text-on-surface-variant hover:text-primary"
-            }`}
+            className="absolute top-4 right-4 z-[500] w-11 h-11 rounded-full bg-surface-container-low/80 backdrop-blur-xl border border-white/50 shadow-lg flex items-center justify-center hover:bg-surface-container transition-colors"
+            aria-label="Switch to list view"
           >
-            産地一覧
+            <span className="material-symbols-outlined text-[20px] text-primary">
+              list_alt
+            </span>
           </button>
-        </div>
-        <div className="mt-8 text-center">
-          <h2 className="font-headline text-3xl font-black text-primary mb-2">
-            世界の軌跡
-          </h2>
-          <p className="text-sm tracking-[0.3em] uppercase text-secondary font-medium">
-            Global Collection Journey
-          </p>
-        </div>
-      </section>
 
-      {/* Map Content */}
-      {mapMode === "real" ? (
-        <>
-          {/* Real Geographic Map */}
-          <div className="flex-1 px-4 min-h-0">
-            <div className="relative aspect-[16/10] w-full bg-surface-container-lowest rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/5 mb-8">
-              <WineMap
-                stats={stats}
-                wines={wines}
-                onSelectCountry={setSelectedCountry}
-              />
-              {/* Stats Overlay */}
-              <div className="absolute bottom-4 left-4 z-[400]">
-                <div className="backdrop-blur-xl bg-white/40 p-4 rounded-2xl border border-white/40">
-                  <p className="text-[10px] tracking-widest text-primary/60 uppercase mb-1">
-                    Discovered
-                  </p>
-                  <p className="font-headline text-3xl font-black text-primary">
+          {/* ===== FLOATING EXPEDITION CARD ===== */}
+          {!selectedCountry && (
+            <div className="absolute bottom-2 left-3 right-3 z-[500] transition-all duration-500">
+              <div className="relative overflow-hidden bg-surface-container-low/90 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white/40 px-6 py-5">
+                {/* Wine bar watermark */}
+                <span
+                  className="material-symbols-outlined absolute -right-2 -bottom-2 text-[120px] text-primary/[0.04] pointer-events-none select-none"
+                  aria-hidden="true"
+                >
+                  wine_bar
+                </span>
+
+                {/* Top row: title + rank badge */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-headline text-lg font-bold text-primary tracking-wide">
+                      World Expedition
+                    </h2>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary-container/60 text-xs font-label text-secondary">
+                      {currentRank.icon} {currentRank.name}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Country count */}
+                <p className="text-sm text-on-surface-variant mb-1">
+                  <span className="font-headline font-bold text-primary text-base">
                     {exploredCount}
-                    <span className="text-sm font-normal text-on-surface-variant ml-1">
+                  </span>{" "}
+                  <span className="text-on-surface-variant/70">
+                    カ国発見{" "}
+                    <span className="text-xs text-on-surface-variant/40">
                       / {totalCountries}
                     </span>
-                  </p>
+                  </span>
+                </p>
+
+                {/* Adventure message */}
+                <p className="text-xs italic text-on-surface-variant/60 mb-3 leading-relaxed">
+                  {adventureMessage}
+                </p>
+
+                {/* Mastery XP progress bar */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-label tracking-[0.15em] uppercase text-on-surface-variant/50">
+                      Mastery XP
+                    </span>
+                    <span className="text-[10px] font-label text-[#c9a84c] font-semibold">
+                      {rankProgress}%
+                      {nextRank && (
+                        <span className="text-on-surface-variant/40 ml-1">
+                          → {nextRank.name}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700 ease-out"
+                      style={{
+                        width: `${rankProgress}%`,
+                        background:
+                          "linear-gradient(90deg, #c9a84c 0%, #e8d48b 50%, #c9a84c 100%)",
+                        boxShadow: "0 0 8px rgba(201,168,76,0.4)",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Country Detail Overlay */}
+          {/* ===== COUNTRY DETAIL OVERLAY (slides up, hides expedition card) ===== */}
           {selectedCountry && (
-            <div className="absolute bottom-28 left-0 right-0 z-[1000] px-4">
-              <div className="bg-surface-container-low/90 backdrop-blur-2xl p-6 rounded-[2rem] shadow-2xl border border-white/40 max-h-[50vh] overflow-y-auto">
+            <div className="absolute bottom-4 left-0 right-0 z-[1000] px-3 animate-slide-up">
+              <div className="bg-surface-container-low/90 backdrop-blur-2xl p-6 rounded-[2rem] shadow-2xl border border-white/40 max-h-[55vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="font-headline font-bold text-primary text-xl">
@@ -232,21 +310,63 @@ export default function MapPage() {
           )}
         </>
       ) : (
-        /* Stylized Drill-down Map */
-        <div className="flex-1 px-4 min-h-0 overflow-hidden">
-          <StylizedMap stats={stats} wines={wines} />
-        </div>
+        /* ===== STYLIZED LIST MODE ===== */
+        <>
+          {/* Back-to-map floating button */}
+          <button
+            onClick={() => {
+              setMapMode("real");
+              setSelectedCountry(null);
+            }}
+            className="absolute top-4 right-4 z-[500] w-11 h-11 rounded-full bg-surface-container-low/80 backdrop-blur-xl border border-white/50 shadow-lg flex items-center justify-center hover:bg-surface-container transition-colors"
+            aria-label="Switch to map view"
+          >
+            <span className="material-symbols-outlined text-[20px] text-primary">
+              map
+            </span>
+          </button>
+
+          {/* Header */}
+          <section className="flex flex-col items-center pt-8 mb-4 px-4">
+            <h2 className="font-headline text-3xl font-black text-primary mb-2">
+              産地一覧
+            </h2>
+            <p className="text-sm tracking-[0.3em] uppercase text-secondary font-medium">
+              Wine Regions
+            </p>
+          </section>
+
+          {/* Stylized drill-down map */}
+          <div className="flex-1 px-4 min-h-0 overflow-hidden">
+            <StylizedMap stats={stats} wines={wines} />
+          </div>
+
+          {/* Poetic footer */}
+          <div className="py-12 flex flex-col items-center px-4">
+            <div className="w-16 h-[1px] bg-secondary mb-8" />
+            <p className="font-headline italic text-primary/60 text-center max-w-sm leading-relaxed text-sm">
+              一本のワインは、その土地の風と土の記憶。地図を埋めるたび、物語は深まっていく。
+            </p>
+          </div>
+        </>
       )}
 
-      {/* Poetic footer */}
-      {mapMode === "stylized" && (
-        <div className="py-12 flex flex-col items-center px-4">
-          <div className="w-16 h-[1px] bg-secondary mb-8" />
-          <p className="font-headline italic text-primary/60 text-center max-w-sm leading-relaxed text-sm">
-            一本のワインは、その土地の風と土の記憶。地図を埋めるたび、物語は深まっていく。
-          </p>
-        </div>
-      )}
+      {/* Slide-up animation keyframe (injected once) */}
+      <style jsx>{`
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(40px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+      `}</style>
     </div>
   );
 }
