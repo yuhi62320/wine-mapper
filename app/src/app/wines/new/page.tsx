@@ -716,7 +716,7 @@ export default function NewWinePage() {
           {/* Radar Chart Card */}
           <div className="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-[#d8c1c2]/20">
             <div className="flex justify-center">
-              <RadarChart data={radarData} baseData={radarBaseData} size={200} />
+              <RadarChart data={radarData} baseData={radarBaseData} size={200} color={WINE_TYPE_COLORS[logResult.wine.type]} />
             </div>
             {radarBaseData && (
               <div className="flex items-center justify-center gap-4 mt-3 text-[10px] text-[#534343]">
@@ -725,7 +725,7 @@ export default function NewWinePage() {
                   品種の特徴
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
+                  <span className="inline-block w-4 h-0.5" style={{ backgroundColor: WINE_TYPE_COLORS[logResult.wine.type] }} />
                   あなたの評価
                 </span>
               </div>
@@ -1011,22 +1011,6 @@ export default function NewWinePage() {
               })}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* AI description banner */}
-      {visionResult?.knowledge.description && (
-        <div className="mx-5 mb-5 bg-[#c9a84c]/10 border border-[#c9a84c]/25 rounded-2xl p-4">
-          <p className="text-xs text-[#755b00] leading-relaxed">
-            <span className="material-symbols-outlined text-xs align-middle mr-1">auto_awesome</span>
-            {visionResult.knowledge.description}
-          </p>
-          {priceHint && (
-            <p className="text-xs text-[#755b00]/70 mt-1.5">
-              <span className="material-symbols-outlined text-xs align-middle mr-0.5">payments</span>
-              価格目安: {priceHint}
-            </p>
-          )}
         </div>
       )}
 
@@ -1399,6 +1383,7 @@ export default function NewWinePage() {
               data={radarData}
               baseData={radarBaseData}
               size={260}
+              color={WINE_TYPE_COLORS[type]}
               levelLabels={Object.fromEntries(
                 Object.entries(PALATE_LABELS).map(([, meta]) => [meta.label, meta.levels])
               )}
@@ -1413,7 +1398,7 @@ export default function NewWinePage() {
                 品種の特徴
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-4 h-0.5 bg-[#722f37]" />
+                <span className="inline-block w-4 h-0.5" style={{ backgroundColor: WINE_TYPE_COLORS[type] }} />
                 このワイン
               </span>
             </div>
