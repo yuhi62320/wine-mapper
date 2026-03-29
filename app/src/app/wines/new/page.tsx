@@ -31,7 +31,7 @@ import RadarChart from "@/components/radar-chart";
 // import { getRegionImage, getSectionImage, getGuideText } from "@/lib/region-images";
 import { getAromaVisual, AROMA_IMAGE_COPYRIGHT } from "@/lib/aroma-images";
 import { saveWinePhoto } from "@/lib/photo-store";
-import { buildRakutenKeyword, searchRakutenWines, RakutenItem } from "@/lib/rakuten";
+import { searchRakutenWinesWithFallback, RakutenItem } from "@/lib/rakuten";
 
 const PALATE_LABELS: Record<string, { label: string; levels: string[] }> = {
   sweetness: {
@@ -367,22 +367,21 @@ export default function NewWinePage() {
     setCandidates([]);
   }
 
-  // === Rakuten search helper ===
+  // === Rakuten search helper (with automatic fallback) ===
   async function triggerRakutenSearch(params: {
     producer?: string;
     name?: string;
     vintage?: string | number | null;
     country?: string;
   }) {
-    const keyword = buildRakutenKeyword(params);
-    if (!keyword) {
+    if (!params.producer && !params.name) {
       setRakutenSearched(true);
       return;
     }
     setRakutenLoading(true);
     setRakutenItems([]);
     try {
-      const result = await searchRakutenWines(keyword);
+      const result = await searchRakutenWinesWithFallback(params);
       setRakutenItems(result.items);
       if (result.items.length > 0) {
         setRakutenUrl(result.items[0].itemUrl);
