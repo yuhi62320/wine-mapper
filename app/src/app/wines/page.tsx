@@ -113,6 +113,13 @@ export default function WineListPage() {
 
                 {/* Wine info */}
                 <div className="flex-1 min-w-0 space-y-1.5">
+                  {/* Producer */}
+                  {wine.producer && (
+                    <p className="text-xs font-label text-on-surface-variant uppercase tracking-wider truncate">
+                      {wine.producer}
+                    </p>
+                  )}
+
                   {/* Name and vintage */}
                   <h3 className="text-base font-headline font-bold text-primary leading-tight truncate">
                     {wine.name}
@@ -120,13 +127,6 @@ export default function WineListPage() {
                       <span className="text-sm ml-1">{wine.vintage}</span>
                     )}
                   </h3>
-
-                  {/* Producer */}
-                  {wine.producer && (
-                    <p className="text-sm font-body text-on-surface-variant truncate">
-                      {wine.producer}
-                    </p>
-                  )}
 
                   {/* Country / Region */}
                   {wine.country && (
