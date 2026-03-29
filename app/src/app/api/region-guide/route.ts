@@ -126,6 +126,13 @@ export async function POST(req: NextRequest) {
 産地: ${location}
 ${grapeContext}
 
+【ファクトチェック・URL規則 — 厳守】
+- URLやリンクを生成・推測してはいけません。このリクエストではWeb検索機能がないため、URLの正確性を確認できません
+- tourDataのwinalistSearchQueryとairbnbSearchQueryには「検索キーワード」のみを記載してください（URLではありません）
+- ツアー情報は一般的な知識に基づく内容とし、各ツアーのbookingTipに「※一般的な情報です。最新の内容・料金は各公式サイトでご確認ください」と必ず記載してください
+- 固有名詞（生産者名、ワイン名、地名、レストラン名等）は確実に正しいもののみ記載してください。確信が持てない場合は一般的な表現にしてください
+- 数値情報（標高、降水量、面積、年号等）は確実に正しいもののみ記載し、不確かな場合は「約」を付けるか省略してください
+
 以下のJSON形式で返してください（markdownやバッククォートなし、JSONのみ）:
 
 {
@@ -179,7 +186,7 @@ ${grapeContext}
   "tourData": {
     "tours": [
       {
-        "title": "<ツアー/体験名>",
+        "title": "<ツアー/体験名（一般的な名称）>",
         "description": "<内容詳細。2-3文>",
         "type": "<'winery_visit' | 'wine_tour' | 'food_pairing' | 'harvest_experience' | 'city_tour' | 'accommodation'>",
         "location": "<具体的な場所>",
@@ -187,20 +194,21 @@ ${grapeContext}
         "bestSeason": "<おすすめ時期>",
         "priceRange": "<価格帯の目安>",
         "highlights": ["<見どころ1>", "<見どころ2>"],
-        "bookingTip": "<予約のコツ>"
+        "bookingTip": "※一般的な情報です。最新の内容・料金は各公式サイトでご確認ください"
       }
     ],
     "travelTips": "<旅行総合アドバイス。アクセス、ベストシーズン、マナー、周遊ルート。4-5文>",
     "nearbyAttractions": ["<周辺観光名所1>", "<周辺観光名所2>", "<周辺観光名所3>"],
-    "winalistSearchQuery": "<Winalist.comでの検索キーワード（英語）>",
-    "airbnbSearchQuery": "<Airbnb体験での検索キーワード（英語）>"
+    "winalistSearchQuery": "<Winalist.comでの検索キーワード（英語）。URLではなくキーワードのみ>",
+    "airbnbSearchQuery": "<Airbnb体験での検索キーワード（英語）。URLではなくキーワードのみ>"
   }
 }
 
 重要：
 - 3-5件のツアー/体験を含めてください（多様なタイプで）
 - ユーザーが「行ってみたい！」と思うような、具体的で魅力的な情報を
-- 数字、固有名詞、具体的なワイン名を積極的に含めてください`,
+- 数字、固有名詞、具体的なワイン名を積極的に含めてください（ただし正確性を確認したもののみ）
+- 繰り返しますが、URLを生成しないでください。検索キーワードのみを記載してください`,
           },
         ],
       }),

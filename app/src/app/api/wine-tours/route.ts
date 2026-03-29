@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: "user",
-            content: `あなたはワイン旅行の専門家です。以下のワイン/産地に関連する実際のツアー情報を調べてください。
+            content: `あなたはワイン旅行の専門家です。以下のワイン/産地に関連する実際のツアー情報をWeb検索で調べてください。
 
 ワイン: ${wineContext}
 産地: ${location}
@@ -70,6 +70,14 @@ ${grapeContext}
 1. まずWinalist.comでこの地域/ワイナリーのツアーを検索してください
 2. 次にAirbnb体験でこの地域のワイン体験を検索してください
 3. ワイナリーの公式サイトで見学情報を確認してください
+
+【ファクトチェック・URL規則 — 厳守】
+- sourceUrlには、Web検索で実際にアクセスして確認できたURLのみを記載すること
+- 架空のURL、推測で生成したURL、存在を確認していないURLは絶対に記載しないこと
+- URLが見つからなかった場合はsourceUrlにnullを、sourceに"knowledge"を設定すること
+- externalLinksも同様に、Web検索で実際に確認したURLのみを記載し、見つからなければnullを設定すること
+- 価格・営業時間・開催期間などの情報もWeb検索で確認したものを優先すること
+- source="knowledge"のツアーは「※一般的な情報です。最新情報は公式サイトでご確認ください」とbookingTipに記載すること
 
 取得した情報を元に、以下のJSON形式で返してください（markdownやバッククォートなし、JSONのみ）:
 
@@ -85,7 +93,7 @@ ${grapeContext}
       "priceRange": "<目安の価格帯（現地通貨と円換算）>",
       "highlights": ["<見どころ1>", "<見どころ2>", "<見どころ3>"],
       "bookingTip": "<予約のコツや注意点>",
-      "sourceUrl": "<情報元のURL（Winalist, Airbnb, 公式サイト等）>",
+      "sourceUrl": "<Web検索で実際に確認したURL。見つからなければnull>",
       "source": "<'winalist' | 'airbnb' | 'official' | 'knowledge'>"
     }
   ],
@@ -98,14 +106,14 @@ ${grapeContext}
     }
   ],
   "externalLinks": {
-    "winalistUrl": "<Winalistの検索結果URL>",
-    "airbnbUrl": "<Airbnb体験の検索結果URL>",
-    "officialTourUrl": "<ワイナリー公式ツアーページURL>"
+    "winalistUrl": "<Web検索で確認したWinalistの実在URL。見つからなければnull>",
+    "airbnbUrl": "<Web検索で確認したAirbnb体験の実在URL。見つからなければnull>",
+    "officialTourUrl": "<Web検索で確認した公式ツアーページの実在URL。見つからなければnull>"
   }
 }
 
-5-8件のツアー/プランを提案してください。Web検索で見つかった実際のツアーを優先し、見つからない場合は知識ベースで補完してください。
-価格情報は実際の情報を反映してください。`,
+5-8件のツアー/プランを提案してください。Web検索で見つかった実際のツアーを最優先し、見つからない場合のみ知識ベース(source="knowledge")で補完してください。
+繰り返しますが、URLは実際にWeb検索で確認できたもののみを記載してください。架空のURLは絶対に生成しないでください。`,
           },
         ],
       }),
@@ -136,6 +144,43 @@ ${grapeContext}
     }
 
     const data = JSON.parse(jsonMatch[0]);
+
+    // Validate all URLs - purge broken/fake ones
+    const urlChecks: Promise<void>[] = [];
+
+    // Validate tour sourceUrls
+    if (data.tours && Array.isArray(data.tours)) {
+      for (const tour of data.tours) {
+        if (tour.sourceUrl && typeof tour.sourceUrl === "string" && tour.sourceUrl !== "null") {
+          urlChecks.push(
+            fetch(tour.sourceUrl, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(5000) })
+              .then((r) => { if (!r.ok) tour.sourceUrl = null; })
+              .catch(() => { tour.sourceUrl = null; })
+          );
+        } else {
+          tour.sourceUrl = null;
+        }
+      }
+    }
+
+    // Validate externalLinks
+    if (data.externalLinks) {
+      for (const key of ["winalistUrl", "airbnbUrl", "officialTourUrl"]) {
+        const url = data.externalLinks[key];
+        if (url && typeof url === "string" && url !== "null") {
+          urlChecks.push(
+            fetch(url, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(5000) })
+              .then((r) => { if (!r.ok) data.externalLinks[key] = null; })
+              .catch(() => { data.externalLinks[key] = null; })
+          );
+        } else {
+          data.externalLinks[key] = null;
+        }
+      }
+    }
+
+    await Promise.all(urlChecks);
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("Tour search error:", err);

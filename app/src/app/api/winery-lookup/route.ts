@@ -118,6 +118,15 @@ export async function POST(req: NextRequest) {
 ${locationStr ? `所在地ヒント: ${locationStr}` : ""}
 ${grapeStr ? `主要品種: ${grapeStr}` : ""}
 
+【ファクトチェック・URL規則 — 厳守】
+- URLやリンクを推測・捏造してはいけません。このリクエストではWeb検索機能がないため、URLの正確性を確認できません
+- websiteフィールドには、確実に正しいと知っている公式サイトURLのみ記載してください。不確かなら空文字にしてください
+- tourDataのofficialTourUrl, winalistUrl, airbnbExperienceUrlは、確実に正しいURLを知っている場合のみ記載してください。不確かなら必ず空文字にしてください
+- 架空のURLや推測URLは絶対に生成しないでください。ユーザーがクリックしてリンク切れになると信頼を損ないます
+- ツアー情報は一般的な知識に基づく内容とし、各ツアーのbookingTipに「※一般的な情報です。最新の内容・料金は公式サイトでご確認ください」と必ず記載してください
+- 固有名詞（ワイン名、人名、地名等）は確実に正しいもののみ記載してください
+- 緯度・経度は確信がある場合のみ記載し、少しでも不確かならnullにしてください
+
 以下のJSON形式で返してください（markdownやバッククォートなし、JSONのみ）:
 
 {
@@ -127,16 +136,16 @@ ${grapeStr ? `主要品種: ${grapeStr}` : ""}
   "region": "<ワイン産地名（英語）>",
   "subRegion": "<サブ地域（英語、該当なければ空文字）>",
   "village": "<村名（英語、該当なければ空文字）>",
-  "lat": <ワイナリー建物の正確な緯度（数値、小数点以下4桁）。不明ならnull>,
-  "lng": <ワイナリー建物の正確な経度（数値、小数点以下4桁）。不明ならnull>,
-  "website": "<公式サイトURL（不明なら空文字）>",
+  "lat": <ワイナリー建物の正確な緯度（数値）。確信がなければnull>,
+  "lng": <ワイナリー建物の正確な経度（数値）。確信がなければnull>,
+  "website": "<確実に正しい公式サイトURL。不確かなら空文字>",
   "description": "<ワイナリーの概要。歴史と特徴、代表ワイン、訪問の魅力を含めて5-6文で。「行ってみたい」と思わせる文体で>",
   "guideData": {
     "history": "<創業の歴史、重要な出来事、何世代にわたるか等。創業者の情熱やストーリーを含めて。5-6文>",
     "philosophy": "<醸造哲学、ビオ/ビオディナミ/自然派等のアプローチ、テロワール重視の姿勢等。具体的な取り組み内容を含めて。3-4文>",
     "signatureWines": "<代表的なワイン3-5本の名前と簡単な特徴。価格帯や受賞歴も含めて>",
     "terroir": "<ワイナリーの畑の土壌、標高、向き、気候条件等。具体的な数値を含めて。3-4文>",
-    "visitInfo": "<見学情報：予約方法、テイスティング料金、営業時間、所要時間、言語対応、駐車場、アクセス方法。できるだけ具体的に。不明なら「公式サイトで要確認」>",
+    "visitInfo": "<見学情報：予約方法、テイスティング料金、営業時間、所要時間、言語対応、駐車場、アクセス方法。不確かな情報は「公式サイトで要確認」と記載>",
     "funFact": "<豆知識やトリビア。ワイン好きが「へぇ！」と思う意外な事実。2-3文>",
     "atmosphere": "<ワイナリーの雰囲気。建築スタイル、周辺の景色、テイスティングルームの様子など。訪問者目線で。3-4文>",
     "bestTimeToVisit": "<訪問のベストシーズンとその理由。収穫期、イベント時期なども含めて。2-3文>",
@@ -151,20 +160,20 @@ ${grapeStr ? `主要品種: ${grapeStr}` : ""}
         "duration": "<所要時間>",
         "priceRange": "<価格帯の目安>",
         "highlights": ["<見どころ1>", "<見どころ2>"],
-        "bookingTip": "<予約のコツ>"
+        "bookingTip": "※一般的な情報です。最新の内容・料金は公式サイトでご確認ください"
       }
     ],
     "travelTips": "<この地域への旅行アドバイス。空港からのアクセス、レンタカーの要否、周遊ルートなど。3-4文>",
-    "officialTourUrl": "<公式サイトの見学/ツアーページURL。不明なら空文字>",
-    "winalistUrl": "<WinalistでのページURL（存在する場合）。不明なら空文字>",
-    "airbnbExperienceUrl": "<Airbnb体験でのURL（存在する場合）。不明なら空文字>"
+    "officialTourUrl": "<確実に正しい公式ツアーページURL。不確かなら空文字>",
+    "winalistUrl": "<確実に正しいWinalistページURL。不確かなら空文字>",
+    "airbnbExperienceUrl": "<確実に正しいAirbnb体験URL。不確かなら空文字>"
   }
 }
 
 重要：
-- 緯度・経度はワイナリーの建物・敷地の正確な座標を。確信できない場合はnull
 - 2-3件のツアー/体験を含めてください
-- ユーザーが「行ってみたい！」と思うような、具体的で魅力的な情報を心がけてください`,
+- ユーザーが「行ってみたい！」と思うような、具体的で魅力的な情報を心がけてください
+- 繰り返しますが、URLは確実に正しいもののみ記載してください。不確かなURLは絶対に記載せず空文字にしてください`,
           },
         ],
       }),
@@ -198,21 +207,33 @@ ${grapeStr ? `主要品種: ${grapeStr}` : ""}
 
     const data = JSON.parse(jsonMatch[0]);
 
-    // Verify website URL is reachable
+    // Verify all URLs are reachable (purge fake/broken ones)
+    const urlChecks: Promise<void>[] = [];
+
     if (data.website) {
-      try {
-        const urlCheck = await fetch(data.website, {
-          method: "HEAD",
-          redirect: "follow",
-          signal: AbortSignal.timeout(5000),
-        });
-        if (!urlCheck.ok) {
-          data.website = "";
+      urlChecks.push(
+        fetch(data.website, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(5000) })
+          .then((r) => { if (!r.ok) data.website = ""; })
+          .catch(() => { data.website = ""; })
+      );
+    }
+
+    // Validate tour-related URLs
+    if (data.tourData) {
+      const tourUrls = ["officialTourUrl", "winalistUrl", "airbnbExperienceUrl"] as const;
+      for (const key of tourUrls) {
+        const url = data.tourData[key];
+        if (url && typeof url === "string" && url.length > 0) {
+          urlChecks.push(
+            fetch(url, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(5000) })
+              .then((r) => { if (!r.ok) data.tourData[key] = ""; })
+              .catch(() => { data.tourData[key] = ""; })
+          );
         }
-      } catch {
-        data.website = "";
       }
     }
+
+    await Promise.all(urlChecks);
 
     // If we had cached data, merge (keep cached non-empty fields, fill gaps from AI)
     if (cached) {
