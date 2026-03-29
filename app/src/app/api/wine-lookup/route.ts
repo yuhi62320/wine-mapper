@@ -86,32 +86,23 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2025-01-01",
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 1500,
-        tools: [
-          {
-            type: "web_search_20250305",
-            name: "web_search",
-            max_uses: 2,
-          },
-        ],
+        max_tokens: 1200,
         messages: [
           {
             role: "user",
-            content: `You are a sommelier. Search the web for real information about this wine, then return structured data.
+            content: `You are a sommelier with encyclopedic wine knowledge. Given the following wine, return ONLY a valid JSON object (no markdown, no explanation) with specific information about THIS wine (not generic grape/region info).
 
 Wine:
 ${wineDescription}
 
-Search Vivino, Wine-Searcher, Winalist, or wine review sites for REAL tasting notes, reviews, and pricing for this specific wine.
-
 IMPORTANT - For aromas, you MUST select ONLY from this predefined list:
 ${AROMA_LIST_FOR_PROMPT}
 
-Return ONLY a valid JSON object (no markdown, no explanation):
+Return this exact JSON structure:
 {
   "producer": "<producer/domaine/chateau name>",
   "name": "<wine name / cuvee name>",
@@ -120,16 +111,16 @@ Return ONLY a valid JSON object (no markdown, no explanation):
   "subRegion": "<sub-region if applicable, otherwise empty string>",
   "village": "<village/commune if applicable, otherwise empty string>",
   "appellation": "<appellation / AOC / DOCG etc., otherwise empty string>",
-  "classification": "<quality classification>",
+  "classification": "<quality classification e.g. Premier Cru, Reserva, otherwise empty string>",
   "grapeVarieties": [<grape variety names>],
   "abv": <typical ABV as number or null>,
-  "aging": "<aging info>",
-  "tasteType": "<taste type>",
-  "bottler": "<bottler info>",
-  "certifications": [<certifications>],
-  "producerUrl": "<producer website URL if found>",
-  "priceRange": { "min": <JPY number>, "max": <JPY number> },
-  "aromas": [<5-10 from predefined list above, in Japanese>],
+  "aging": "<aging info e.g. Barrique 12 months, otherwise empty string>",
+  "tasteType": "<taste type e.g. Sec, Brut, Doux, otherwise empty string>",
+  "bottler": "<bottler info if known, otherwise empty string>",
+  "certifications": [<certifications like Bio, Organic, or empty array>],
+  "producerUrl": "<producer website URL if known, otherwise empty string>",
+  "priceRange": { "min": <number in JPY>, "max": <number in JPY> },
+  "aromas": [<up to 8 from predefined list above, in Japanese>],
   "palate": {
     "sweetness": <1-5>,
     "acidity": <1-5>,
@@ -137,8 +128,8 @@ Return ONLY a valid JSON object (no markdown, no explanation):
     "body": <1-5>,
     "finish": <1-5>
   },
-  "description": "<2-3 sentence Japanese description based on real reviews>",
-  "suggestedGrapes": [<grape variety names if not in input>],
+  "description": "<1-2 sentence Japanese description of this specific wine's character>",
+  "suggestedGrapes": [<grape variety names if not provided in input, otherwise empty array>],
   "suggestedAbv": <typical ABV as number or null>,
   "confidence": "high" | "medium" | "low"
 }
@@ -146,7 +137,9 @@ Return ONLY a valid JSON object (no markdown, no explanation):
 RULES:
 - Aromas MUST come from the predefined list only. Do NOT invent new descriptors.
 - Price should reflect Japanese retail market (search wine-searcher or rakuten).
-- Be specific to this wine, not generic. Base on real reviews found.`,
+- Aromas MUST come from the predefined list only. Do NOT invent new descriptors.
+- Be specific to the actual wine, not generic. If the producer is famous, reflect its unique style.
+- Price should reflect Japanese retail market.`,
           },
         ],
       }),
@@ -162,16 +155,12 @@ RULES:
     }
 
     const apiResult = await res.json();
+    const text =
+      apiResult.content?.[0]?.type === "text"
+        ? apiResult.content[0].text
+        : "";
 
-    // Extract text from all content blocks (web_search responses have multiple blocks)
-    let fullText = "";
-    for (const block of apiResult.content || []) {
-      if (block.type === "text") {
-        fullText += block.text;
-      }
-    }
-
-    const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
         { error: "Failed to parse response" },

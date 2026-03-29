@@ -133,6 +133,10 @@ export default function NewWinePage() {
   // Text search (when no image)
   const [textSearching, setTextSearching] = useState(false);
 
+  // Web enrichment (user-triggered)
+  const [enriching, setEnriching] = useState(false);
+  const [enrichResult, setEnrichResult] = useState<string | null>(null);
+
   // Candidate picker for multi-result search
   const [candidates, setCandidates] = useState<any[]>([]);
   const [showCandidates, setShowCandidates] = useState(false);
@@ -391,6 +395,64 @@ export default function NewWinePage() {
     } finally {
       setRakutenLoading(false);
       setRakutenSearched(true);
+    }
+  }
+
+  // === Web enrichment: fetch real reviews on user demand ===
+  async function handleEnrichFromWeb() {
+    if (!producer && !name) return;
+    setEnriching(true);
+    setEnrichResult(null);
+    try {
+      const res = await fetch("/api/wine-enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          producer,
+          name,
+          vintage,
+          country,
+          region,
+          type,
+          grapeVarieties: grapes,
+        }),
+      });
+      if (!res.ok) throw new Error("Enrich failed");
+      const data = await res.json();
+
+      // Apply enrichment results to form
+      const clamp = (v: number): PalateLevel =>
+        Math.max(1, Math.min(5, Math.round(v))) as PalateLevel;
+
+      if (data.palate) {
+        setSweetness(clamp(data.palate.sweetness ?? 3));
+        setAcidity(clamp(data.palate.acidity ?? 3));
+        if (data.palate.tannin != null) setTannin(clamp(data.palate.tannin));
+        setBody(clamp(data.palate.body ?? 3));
+        setFinish(clamp(data.palate.finish ?? 3));
+      }
+
+      if (data.aromas?.length > 0) {
+        setSelectedAromas(data.aromas);
+      }
+
+      if (data.priceRange?.min > 0) {
+        const mid = Math.round((data.priceRange.min + data.priceRange.max) / 2);
+        setPrice(String(mid));
+        setPriceHint(`¥${data.priceRange.min.toLocaleString()}〜¥${data.priceRange.max.toLocaleString()}`);
+      }
+
+      // Show result info
+      const source = data.reviewSource || "";
+      const conf = data.confidence === "high" ? "高" : data.confidence === "medium" ? "中" : "低";
+      setEnrichResult(
+        `${source ? `${source} ` : ""}（確度: ${conf}）${data.description ? `\n${data.description}` : ""}`
+      );
+    } catch (err) {
+      console.error("[enrich] Error:", err);
+      setEnrichResult("レビュー情報の取得に失敗しました");
+    } finally {
+      setEnriching(false);
     }
   }
 
@@ -1375,6 +1437,35 @@ export default function NewWinePage() {
 
           {/* ---- TASTE PROFILE SECTION ---- */}
           <SectionDivider label="テイスティング" />
+
+          {/* Web enrichment button */}
+          {(producer || name) && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={handleEnrichFromWeb}
+                disabled={enriching}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-secondary/30 hover:border-secondary/60 bg-secondary/5 hover:bg-secondary/10 transition-all disabled:opacity-50"
+              >
+                {enriching ? (
+                  <>
+                    <span className="material-symbols-outlined text-lg text-secondary animate-spin">progress_activity</span>
+                    <span className="text-sm font-label text-secondary tracking-wide">レビューを検索中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-lg text-secondary">travel_explore</span>
+                    <span className="text-sm font-label text-secondary tracking-wide font-bold">世界のレビューを参考にする</span>
+                  </>
+                )}
+              </button>
+              {enrichResult && (
+                <p className="text-[11px] text-[#534343]/70 mt-2 text-center whitespace-pre-line leading-relaxed">
+                  {enrichResult}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Radar Chart */}
           <div className="flex justify-center mb-3">
