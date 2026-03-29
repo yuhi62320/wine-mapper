@@ -40,11 +40,13 @@ const AROMA_VISUALS: Record<string, AromaVisual> = {
   "イチゴ": { emoji: "🍓", imageUrl: "/aromas/strawberry.png" },
   "ラズベリー": { emoji: "🫐", imageUrl: "/aromas/raspberry.png" },
   "さくらんぼ": { emoji: "🍒", imageUrl: "/aromas/cherry.png" },
+  "ダークチェリー": { emoji: "🍒", imageUrl: "" },
   "クランベリー": { emoji: "🔴", imageUrl: "/aromas/cranberry.png" },
   "ザクロ": { emoji: "🔴", imageUrl: "/aromas/pomegranate.png" },
 
   // === Fruit - Black ===
   "ブラックベリー": { emoji: "🫐", imageUrl: "/aromas/blackberry.png" },
+  "ブラックチェリー": { emoji: "🍒", imageUrl: "" },
   "カシス": { emoji: "🫐", imageUrl: "/aromas/blackcurrant.png" },
   "ブルーベリー": { emoji: "🫐", imageUrl: "/aromas/blueberry.png" },
   "ブラックプラム": { emoji: "🟣", imageUrl: "/aromas/black_plum.png" },
@@ -86,6 +88,11 @@ const AROMA_VISUALS: Record<string, AromaVisual> = {
   "干し草": { emoji: "🌾", imageUrl: "/aromas/hay.png" },
   "紅茶": { emoji: "🍵", imageUrl: "/aromas/black_tea.png" },
   "タバコ": { emoji: "🍂", imageUrl: "/aromas/tobacco.png" },
+  "腐葉土": { emoji: "🍂", imageUrl: "" },
+  "ドライハーブ": { emoji: "🌿", imageUrl: "" },
+  "セージ": { emoji: "🌿", imageUrl: "" },
+  "ローリエ": { emoji: "🌿", imageUrl: "" },
+  "フェンネル": { emoji: "🌿", imageUrl: "" },
 
   // === Spice - Sweet ===
   "バニラ": { emoji: "🍦", imageUrl: "/aromas/vanilla.png" },
@@ -102,6 +109,7 @@ const AROMA_VISUALS: Record<string, AromaVisual> = {
   "山椒": { emoji: "🌿", imageUrl: "/aromas/sansho_pepper.png" },
 
   // === Earth / Mineral ===
+  "グラファイト": { emoji: "✏️", imageUrl: "" },
   "濡れた石": { emoji: "🪨", imageUrl: "/aromas/wet_stone.png" },
   "火打ち石": { emoji: "🪨", imageUrl: "/aromas/flint.png" },
   "スレート": { emoji: "🪨", imageUrl: "/aromas/slate.png" },
@@ -115,11 +123,14 @@ const AROMA_VISUALS: Record<string, AromaVisual> = {
   // === Wood / Oak ===
   "オーク": { emoji: "🪵", imageUrl: "/aromas/oak.png" },
   "シダー": { emoji: "🌲", imageUrl: "/aromas/cedar.png" },
+  "杉": { emoji: "🌲", imageUrl: "" },
   "白檀": { emoji: "🪵", imageUrl: "/aromas/sandalwood.png" },
   "スモーク": { emoji: "💨", imageUrl: "/aromas/smoke.png" },
   "トースト": { emoji: "🍞", imageUrl: "/aromas/toast.png" },
   "コーヒー": { emoji: "☕", imageUrl: "/aromas/coffee.png" },
+  "モカ": { emoji: "☕", imageUrl: "" },
   "炭": { emoji: "🖤", imageUrl: "/aromas/charcoal.png" },
+  "タール": { emoji: "🖤", imageUrl: "" },
 
   // === Nutty / Sweet ===
   "アーモンド": { emoji: "🥜", imageUrl: "/aromas/almond.png" },
@@ -128,6 +139,9 @@ const AROMA_VISUALS: Record<string, AromaVisual> = {
   "蜂蜜": { emoji: "🍯", imageUrl: "/aromas/honey.png" },
   "キャラメル": { emoji: "🍬", imageUrl: "/aromas/caramel.png" },
   "チョコレート": { emoji: "🍫", imageUrl: "/aromas/chocolate.png" },
+  "ダークチョコレート": { emoji: "🍫", imageUrl: "" },
+  "ビターチョコレート": { emoji: "🍫", imageUrl: "" },
+  "カカオ": { emoji: "🍫", imageUrl: "" },
   "バター": { emoji: "🧈", imageUrl: "/aromas/butter.png" },
   "バタースコッチ": { emoji: "🍬", imageUrl: "/aromas/butterscotch.png" },
 
@@ -145,6 +159,22 @@ const AROMA_VISUALS: Record<string, AromaVisual> = {
   "出汁": { emoji: "🍲", imageUrl: "/aromas/dashi.png" },
   "海苔": { emoji: "🟢", imageUrl: "/aromas/nori.png" },
   "シャルキュトリ": { emoji: "🥩", imageUrl: "/aromas/charcuterie.png" },
+
+  // === Additional common descriptors (AI-generated aromas fallback) ===
+  "鉄": { emoji: "⚙️", imageUrl: "" },
+  "血": { emoji: "🔴", imageUrl: "" },
+  "すみれ": { emoji: "🟣", imageUrl: "" },
+  "白い花": { emoji: "🤍", imageUrl: "" },
+  "赤い花": { emoji: "🌹", imageUrl: "" },
+  "柑橘": { emoji: "🍊", imageUrl: "" },
+  "ドライフルーツ": { emoji: "🍇", imageUrl: "" },
+  "スパイス": { emoji: "🌶️", imageUrl: "" },
+  "ミネラル": { emoji: "🪨", imageUrl: "" },
+  "黒系果実": { emoji: "🫐", imageUrl: "" },
+  "赤系果実": { emoji: "🍓", imageUrl: "" },
+  "ナッツ": { emoji: "🥜", imageUrl: "" },
+  "ハーブ": { emoji: "🌿", imageUrl: "" },
+  "鉛筆の芯": { emoji: "✏️", imageUrl: "" },
 };
 
 export function getAromaVisual(aromaJa: string): AromaVisual {

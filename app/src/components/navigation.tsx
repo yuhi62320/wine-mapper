@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { href: "/", icon: "home", label: "ホーム" },
   { href: "/map", icon: "map", label: "マップ" },
   { href: "/wines/new", icon: "add", label: "記録", isCenter: true },
-  { href: "/grapes", icon: "eco", label: "品種" },
+  { href: "/wines", icon: "wine_bar", label: "一覧" },
   { href: "/profile", icon: "person", label: "マイページ" },
 ];
 
@@ -33,6 +33,8 @@ export function Navigation() {
         const isActive =
           href === "/"
             ? pathname === "/"
+            : href === "/wines"
+            ? pathname === "/wines" || (pathname.startsWith("/wines/") && !pathname.startsWith("/wines/new"))
             : pathname.startsWith(href);
 
         if (item.isCenter) {

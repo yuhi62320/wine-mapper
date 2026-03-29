@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PalateLevel, WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS } from "@/lib/types";
 import { getWines } from "@/lib/store";
 import RadarChart from "@/components/radar-chart";
+import { getAromaVisual } from "@/lib/aroma-images";
 
 // Grape variety type matching the API response
 interface GrapeDetail {
@@ -66,6 +67,8 @@ export default function GrapeDetailPage() {
         )
       )
     : [];
+
+  const hasDrunk = matchingWines.length > 0;
 
   // Build radar chart data from typical_palate
   const radarData = grape?.typical_palate
@@ -136,17 +139,31 @@ export default function GrapeDetailPage() {
 
         {/* === Header === */}
         <div className="mb-6">
-          <h1 className="font-headline text-3xl font-bold text-[#561922] mb-1">
-            {grape.name_ja}
-          </h1>
-          <p className="text-sm text-stone-400 italic font-body mb-3">
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className={`font-headline text-3xl font-bold ${hasDrunk ? "text-[#561922]" : "text-stone-400"}`}>
+              {grape.name_ja}
+            </h1>
+            {hasDrunk ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#722f37]/10 text-[#722f37] text-[10px] font-medium">
+                <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>wine_bar</span>
+                経験済み
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-100 text-stone-400 text-[10px] font-medium">
+                未経験
+              </span>
+            )}
+          </div>
+          <p className={`text-sm italic font-body mb-3 ${hasDrunk ? "text-stone-400" : "text-stone-300"}`}>
             {grape.name_en}
           </p>
           <span
             className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-              grape.is_red
-                ? "bg-[#722f37]/10 text-[#722f37]"
-                : "bg-[#c9a84c]/15 text-[#8a7530]"
+              hasDrunk
+                ? grape.is_red
+                  ? "bg-[#722f37]/10 text-[#722f37]"
+                  : "bg-[#c9a84c]/15 text-[#8a7530]"
+                : "bg-stone-100 text-stone-400"
             }`}
           >
             {grape.is_red ? "赤ワイン用" : "白ワイン用"}
@@ -212,14 +229,33 @@ export default function GrapeDetailPage() {
               代表的なアロマ
             </h2>
             <div className="flex flex-wrap gap-2">
-              {grape.typical_aromas.map((aroma, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1 bg-[#722f37]/8 text-[#722f37] text-xs rounded-full font-body"
-                >
-                  {aroma}
-                </span>
-              ))}
+              {grape.typical_aromas.map((aroma, i) => {
+                const visual = getAromaVisual(aroma);
+                return (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1.5 pl-1 pr-3 py-1.5 text-xs font-body font-medium bg-[#722f37]/8 text-[#722f37] rounded-full border border-[#d8c1c2]/50"
+                  >
+                    <span className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-[#f6f3ed] flex items-center justify-center">
+                      {visual.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={visual.imageUrl}
+                          alt={aroma}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                            (e.target as HTMLImageElement).parentElement!.textContent = visual.emoji;
+                          }}
+                        />
+                      ) : (
+                        <span className="text-xs">{visual.emoji}</span>
+                      )}
+                    </span>
+                    {aroma}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}

@@ -10,7 +10,7 @@ import {
   getNextRank,
   getRankProgress,
   getTotalBadgePoints,
-  getEarnedBadges,
+  RANKS,
 } from "@/lib/gamification";
 import { UserProfile } from "@/lib/types";
 
@@ -39,7 +39,7 @@ export default function HomePage() {
   const rank = getCurrentRank(totalPoints);
   const nextRank = getNextRank(totalPoints);
   const progress = getRankProgress(totalPoints);
-  const earnedBadges = profile ? getEarnedBadges(profile, wines) : [];
+  const rankTier = RANKS.findIndex((r) => r.name === rank.name) + 1;
 
   return (
     <div className="px-6 pt-8 space-y-12">
@@ -47,7 +47,7 @@ export default function HomePage() {
       <header className="flex justify-between items-center">
         <div className="flex flex-col">
           <h1 className="font-headline font-bold tracking-tight text-2xl text-primary-container italic">
-            Wine Mapper
+            Wine Traveler&apos;s Journal
           </h1>
           <p className="text-[10px] font-label tracking-widest text-primary opacity-60 uppercase">
             ワインで世界を旅しよう
@@ -62,44 +62,26 @@ export default function HomePage() {
               {rank.nameJa}
             </span>
           </div>
-          <div className="relative w-12 h-12 flex items-center justify-center bg-surface-container-lowest rounded-full shadow-sm">
-            <span
-              className="material-symbols-outlined text-secondary text-3xl"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              workspace_premium
-            </span>
-            {earnedBadges.length > 0 && (
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full border-2 border-surface flex items-center justify-center">
-                <span className="text-[8px] text-white font-bold">
-                  {earnedBadges.length}
-                </span>
-              </div>
-            )}
+          <div className="relative w-12 h-12 flex items-center justify-center">
+            <img
+              src={`/badges/rank-tier${rankTier}.png`}
+              alt={rank.nameJa}
+              className="w-12 h-12 object-contain"
+            />
           </div>
         </div>
       </header>
 
-      {/* Experience Section */}
+      {/* Rank Progress */}
       {profile && (
-        <section className="space-y-4">
-          <div className="flex justify-between items-end mb-2">
-            <div className="space-y-1">
-              <h2 className="text-xs font-label tracking-[0.2em] text-on-surface-variant">
-                ソムリエへの道
-              </h2>
-              <p className="text-xl font-headline font-bold text-primary">
-                熟成の旅路
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-lg font-headline font-bold text-secondary">
-                {totalPoints}
-              </span>
-              <span className="text-xs font-label text-on-surface-variant">
-                {nextRank ? ` / ${nextRank.minXp} pt` : " pt"}
-              </span>
-            </div>
+        <section className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-label text-on-surface-variant">
+              {rank.nameJa}
+            </span>
+            <span className="text-xs font-label text-on-surface-variant">
+              {totalPoints}{nextRank ? ` / ${nextRank.minXp} pt` : " pt"}
+            </span>
           </div>
           <div className="relative h-1 w-full bg-surface-container-high overflow-hidden rounded-full">
             <div
@@ -135,7 +117,7 @@ export default function HomePage() {
               探索国数
             </span>
           </Link>
-          <Link href="/wines" className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
+          <Link href="/grapes" className="bg-surface-container-low p-6 rounded-xl flex flex-col items-center justify-center space-y-2 border border-secondary/10 hover:bg-surface-container-lowest transition-colors group">
             <span className="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors">
               temp_preferences_custom
             </span>
@@ -154,7 +136,7 @@ export default function HomePage() {
         <div className="flex justify-between items-center">
           <div className="relative">
             <h3 className="text-3xl font-headline font-black text-primary leading-tight">
-              最近の発見
+              最近飲んだワイン
             </h3>
             <div className="absolute -bottom-2 left-0 w-12 h-1 bg-secondary opacity-30" />
           </div>
@@ -318,18 +300,6 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Quote / Mood section */}
-      <section className="py-12 text-center space-y-4">
-        <span className="material-symbols-outlined text-primary opacity-20 text-4xl">
-          format_quote
-        </span>
-        <p className="text-xl font-headline italic text-on-surface-variant/80 max-w-sm mx-auto leading-relaxed">
-          「ワインは瓶に詰められた詩である」
-        </p>
-        <p className="text-[10px] font-label text-on-surface-variant uppercase tracking-[0.3em]">
-          Robert Louis Stevenson
-        </p>
-      </section>
     </div>
   );
 }

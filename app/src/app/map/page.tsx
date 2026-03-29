@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { getWines, getWinesByCountry, getProfile } from "@/lib/store";
+import { getWines, getWinesByCountry, getWineries, getProfile } from "@/lib/store";
 import { WINE_COUNTRIES } from "@/lib/countries";
-import { WineLog } from "@/lib/types";
+import { WineLog, Winery } from "@/lib/types";
 import WineMap, { CountryStats } from "@/components/wine-map";
 import StylizedMap from "@/components/stylized-map";
 import WineListMini from "@/components/wine-list-mini";
@@ -13,6 +13,7 @@ import {
   getNextRank,
   getRankProgress,
   getTotalBadgePoints,
+  RANKS,
 } from "@/lib/gamification";
 
 type MapMode = "real" | "stylized";
@@ -38,11 +39,14 @@ export default function MapPage() {
     null
   );
   const [wines, setWines] = useState<WineLog[]>([]);
+  const [wineries, setWineries] = useState<Winery[]>([]);
+  const [selectedWinery, setSelectedWinery] = useState<Winery | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>("real");
 
   useEffect(() => {
     const allWines = getWines();
     setWines(allWines);
+    setWineries(getWineries());
 
     const countryMap = new Map<string, CountryStats>();
 
@@ -111,7 +115,9 @@ export default function MapPage() {
             <WineMap
               stats={stats}
               wines={wines}
-              onSelectCountry={setSelectedCountry}
+              wineries={wineries}
+              onSelectCountry={(s) => { setSelectedCountry(s); setSelectedWinery(null); }}
+              onSelectWinery={(w) => { setSelectedWinery(w); setSelectedCountry(null); }}
             />
           </div>
 
@@ -130,7 +136,7 @@ export default function MapPage() {
           </button>
 
           {/* ===== FLOATING EXPEDITION CARD ===== */}
-          {!selectedCountry && (
+          {!selectedCountry && !selectedWinery && (
             <div className="absolute bottom-2 left-3 right-3 z-[500] transition-all duration-500">
               <div className="relative overflow-hidden bg-surface-container-low/90 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white/40 px-6 py-5">
                 {/* Wine bar watermark */}
@@ -148,7 +154,9 @@ export default function MapPage() {
                       World Expedition
                     </h2>
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary-container/60 text-xs font-label text-secondary">
-                      {currentRank.icon} {currentRank.name}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/badges/rank-tier${RANKS.findIndex((r) => r.name === currentRank.name) + 1}.png`} alt={currentRank.nameJa} className="w-5 h-5 object-contain" />
+                      {currentRank.name}
                     </span>
                   </div>
                 </div>
@@ -170,6 +178,20 @@ export default function MapPage() {
                 <p className="text-xs italic text-on-surface-variant/60 mb-3 leading-relaxed">
                   {adventureMessage}
                 </p>
+
+                {/* Winery count link */}
+                {wineries.length > 0 && (
+                  <Link
+                    href="/wineries"
+                    className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-primary/5 hover:bg-primary/10 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-[#755b00]" style={{ fontVariationSettings: "'FILL' 1" }}>castle</span>
+                    <span className="text-xs font-label font-medium text-primary">
+                      {wineries.length}件のワイナリー
+                    </span>
+                    <span className="material-symbols-outlined text-[14px] text-primary/40 ml-auto">arrow_forward_ios</span>
+                  </Link>
+                )}
 
                 {/* Mastery XP progress bar */}
                 <div>
@@ -257,41 +279,34 @@ export default function MapPage() {
                         ).length
                       : 0;
 
-                    return isExplored ? (
+                    return (
                       <Link
                         key={r.name}
                         href={`/map/region/${selectedCountry.country.code}/${encodeURIComponent(r.name)}`}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                          isExplored
+                            ? "bg-primary/5 text-primary hover:bg-primary/10"
+                            : "bg-surface-container text-on-surface-variant/60 hover:bg-surface-container/80"
+                        }`}
                       >
                         <span className="material-symbols-outlined text-sm">
                           location_on
                         </span>
-                        <span className="text-sm font-medium flex-1">
+                        <span className={`text-sm flex-1 ${isExplored ? "font-medium" : ""}`}>
                           {r.nameJa}
-                          <span className="text-xs text-primary/50 ml-2">
+                          <span className={`text-xs ml-2 ${isExplored ? "text-primary/50" : ""}`}>
                             {r.name}
                           </span>
                         </span>
-                        <span className="text-xs text-primary/60">
-                          {regionWineCount}本
-                        </span>
-                        <span className="material-symbols-outlined text-xs">
+                        {isExplored && (
+                          <span className="text-xs text-primary/60">
+                            {regionWineCount}本
+                          </span>
+                        )}
+                        <span className={`material-symbols-outlined text-xs ${isExplored ? "" : "opacity-40"}`}>
                           arrow_forward_ios
                         </span>
                       </Link>
-                    ) : (
-                      <div
-                        key={r.name}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-container text-on-surface-variant/30"
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          location_on
-                        </span>
-                        <span className="text-sm">
-                          {r.nameJa}
-                          <span className="text-xs ml-2">{r.name}</span>
-                        </span>
-                      </div>
                     );
                   })}
                 </div>
@@ -305,6 +320,61 @@ export default function MapPage() {
                     <WineListMini wines={countryWines} maxItems={3} />
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {/* ===== WINERY DETAIL OVERLAY ===== */}
+          {selectedWinery && (
+            <div className="absolute bottom-4 left-0 right-0 z-[1000] px-3 animate-slide-up">
+              <div className="bg-surface-container-low/90 backdrop-blur-2xl p-6 rounded-[2rem] shadow-2xl border border-white/40">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#561922] to-[#722f37] flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[22px] text-white/80">castle</span>
+                    </div>
+                    <div>
+                      <h2 className="font-headline font-bold text-primary text-lg">
+                        {selectedWinery.nameJa || selectedWinery.name}
+                      </h2>
+                      <p className="text-xs text-on-surface-variant">
+                        {[selectedWinery.region, selectedWinery.country].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedWinery(null)}
+                    className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center"
+                  >
+                    <span className="material-symbols-outlined text-sm text-on-surface-variant">close</span>
+                  </button>
+                </div>
+
+                {selectedWinery.description && (
+                  <p className="text-xs text-on-surface-variant leading-relaxed mb-4 line-clamp-3">
+                    {selectedWinery.description}
+                  </p>
+                )}
+
+                <div className="flex gap-3">
+                  <Link
+                    href={`/wineries/${selectedWinery.id}`}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-full text-sm font-label font-medium"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">info</span>
+                    詳細を見る
+                  </Link>
+                  {selectedWinery.website && (
+                    <a
+                      href={selectedWinery.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1 px-4 py-2.5 bg-surface-container text-primary rounded-full text-sm font-label font-medium"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">language</span>
+                      公式
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           )}

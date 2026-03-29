@@ -63,7 +63,7 @@ export default function LoginPage() {
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="font-headline font-bold tracking-tight text-3xl text-primary-container italic">
-          Wine Mapper
+          Wine Traveler's Journal
         </h1>
         <p className="text-[10px] font-label tracking-widest text-primary opacity-60 uppercase mt-1">
           ワインで世界を旅しよう
