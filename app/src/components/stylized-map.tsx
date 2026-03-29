@@ -34,14 +34,14 @@ const WORLD_REGIONS: WorldRegion[] = [
     name: "西ヨーロッパ",
     nameEn: "Western Europe",
     icon: "🏰",
-    countries: ["FR", "IT", "ES", "PT", "DE", "AT", "CH"],
+    countries: ["FR", "IT", "ES", "PT", "DE", "AT", "CH", "LU", "MT"],
   },
   {
     id: "eastern-europe",
     name: "東ヨーロッパ",
     nameEn: "Eastern Europe",
     icon: "⛪",
-    countries: ["HU", "GR", "GE", "RO", "HR", "SI"],
+    countries: ["HU", "GR", "GE", "RO", "HR", "SI", "BG", "CZ", "SK", "UA", "MD", "RS", "MK", "AL"],
   },
   {
     id: "british-isles",
@@ -62,7 +62,7 @@ const WORLD_REGIONS: WorldRegion[] = [
     name: "南アメリカ",
     nameEn: "South America",
     icon: "🌎",
-    countries: ["AR", "CL", "BR", "UY"],
+    countries: ["AR", "CL", "BR", "UY", "PE", "BO", "PY"],
   },
   {
     id: "oceania",
@@ -76,14 +76,14 @@ const WORLD_REGIONS: WorldRegion[] = [
     name: "アジア",
     nameEn: "Asia",
     icon: "🏯",
-    countries: ["JP", "CN"],
+    countries: ["JP", "CN", "IN", "TH"],
   },
   {
     id: "middle-east-africa",
     name: "中東・アフリカ",
     nameEn: "Middle East & Africa",
     icon: "🌍",
-    countries: ["IL", "LB", "ZA"],
+    countries: ["IL", "LB", "ZA", "TR", "AM", "AZ", "CY", "MA", "TN", "DZ"],
   },
 ];
 
@@ -189,34 +189,35 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
                     }
                   />
                   <div className="flex-1">
-                    {isExplored ? (
-                      <Link
-                        href={`/map/region/${selectedCountry.country.code}/${encodeURIComponent(r.name)}`}
-                        className="text-sm font-medium text-[#722f37] hover:underline"
-                      >
-                        {r.nameJa}
-                        <span className="text-xs text-[#722f37]/60 ml-1">
-                          {r.name}
-                        </span>
-                      </Link>
-                    ) : (
-                      <span className="text-sm text-gray-300">
-                        {r.nameJa}
-                        <span className="text-xs text-gray-200 ml-1">
-                          {r.name}
-                        </span>
+                    <Link
+                      href={`/map/region/${selectedCountry.country.code}/${encodeURIComponent(r.name)}`}
+                      className={`text-sm hover:underline ${
+                        isExplored
+                          ? "font-medium text-[#722f37]"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {r.nameJa}
+                      <span className={`text-xs ml-1 ${
+                        isExplored ? "text-[#722f37]/60" : "text-gray-400"
+                      }`}>
+                        {r.name}
                       </span>
-                    )}
+                    </Link>
                   </div>
-                  {isExplored && (
+                  {isExplored ? (
                     <span className="text-xs text-[#722f37]/70">
                       {regionWineCount}本
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                      未踏
                     </span>
                   )}
                 </div>
 
                 {/* Sub-regions */}
-                {isExplored && r.subRegions.length > 0 && (
+                {r.subRegions.length > 0 && (
                   <div className="ml-5 mt-2 space-y-1">
                     {r.subRegions.map((sr) => {
                       const srExplored = countryWines.some(
@@ -228,7 +229,7 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
                           className={`text-xs px-2 py-1 rounded ${
                             srExplored
                               ? "text-[#722f37]/80 bg-[#722f37]/5"
-                              : "text-gray-300"
+                              : "text-gray-500 bg-gray-50"
                           }`}
                         >
                           {sr.nameJa}
@@ -308,45 +309,55 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
                 className={`w-full text-left rounded-xl border p-3.5 transition-all ${
                   s.explored
                     ? "border-[#722f37]/20 bg-white hover:shadow-md"
-                    : "border-gray-100 bg-gray-50"
+                    : "border-gray-200 bg-gray-50/80 hover:bg-gray-100/80"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <div
                       className={`font-medium ${
-                        s.explored ? "text-gray-900" : "text-gray-300"
+                        s.explored ? "text-gray-900" : "text-gray-500"
                       }`}
                     >
                       {s.country.nameJa}
                       <span
                         className={`text-xs ml-1.5 ${
-                          s.explored ? "text-gray-400" : "text-gray-200"
+                          s.explored ? "text-gray-400" : "text-gray-400"
                         }`}
                       >
                         {s.country.name}
                       </span>
                     </div>
-                    {s.explored && (
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {exploredRegions}/{totalRegions} 地域探索 ·{" "}
-                        {s.count}本
-                      </div>
-                    )}
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {s.explored ? (
+                        <>
+                          {exploredRegions}/{totalRegions} 地域探索 ·{" "}
+                          {s.count}本
+                        </>
+                      ) : (
+                        <span className="text-gray-400">
+                          {totalRegions} 地域 · 未探索
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {s.explored && (
+                    {s.explored ? (
                       <div className="flex items-center gap-1">
                         <Wine size={14} className="text-[#722f37]" />
                         <span className="text-sm font-medium text-[#722f37]">
                           {s.count}
                         </span>
                       </div>
+                    ) : (
+                      <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                        未踏
+                      </span>
                     )}
                     <ChevronRight
                       size={16}
                       className={
-                        s.explored ? "text-gray-400" : "text-gray-200"
+                        s.explored ? "text-gray-400" : "text-gray-300"
                       }
                     />
                   </div>
@@ -397,7 +408,7 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
               className={`w-full text-left rounded-xl border p-4 transition-all ${
                 hasExplored
                   ? "border-[#722f37]/20 bg-white hover:shadow-md"
-                  : "border-gray-100 bg-gray-50 hover:bg-gray-100"
+                  : "border-gray-200 bg-gray-50/80 hover:bg-gray-100/80"
               }`}
             >
               <div className="flex items-center justify-between">
@@ -423,14 +434,14 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
                   <div>
                     <div
                       className={`font-medium ${
-                        hasExplored ? "text-gray-900" : "text-gray-400"
+                        hasExplored ? "text-gray-900" : "text-gray-500"
                       }`}
                     >
                       {wr.name}
                     </div>
                     <div
                       className={`text-xs ${
-                        hasExplored ? "text-gray-500" : "text-gray-300"
+                        hasExplored ? "text-gray-500" : "text-gray-400"
                       }`}
                     >
                       {wr.nameEn} · {totalCountries}カ国
@@ -439,19 +450,25 @@ export default function StylizedMap({ stats, wines }: StylizedMapProps) {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {hasExplored && (
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-[#722f37]">
-                        {totalWines}本
-                      </div>
-                      <div className="text-[10px] text-gray-400">
-                        {exploredCountries}/{totalCountries}カ国
-                      </div>
-                    </div>
-                  )}
+                  <div className="text-right">
+                    {hasExplored ? (
+                      <>
+                        <div className="text-sm font-medium text-[#722f37]">
+                          {totalWines}本
+                        </div>
+                        <div className="text-[10px] text-gray-400">
+                          {exploredCountries}/{totalCountries}カ国
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-gray-400">
+                        未探索
+                      </span>
+                    )}
+                  </div>
                   <ChevronRight
                     size={16}
-                    className={hasExplored ? "text-gray-400" : "text-gray-200"}
+                    className={hasExplored ? "text-gray-400" : "text-gray-300"}
                   />
                 </div>
               </div>

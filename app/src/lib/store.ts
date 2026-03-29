@@ -1,6 +1,6 @@
 "use client";
 
-import { UserProfile, WineLog } from "./types";
+import { UserProfile, WineLog, Winery } from "./types";
 import { deleteWinePhoto } from "@/lib/photo-store";
 import {
   calculateXpForLog,
@@ -179,4 +179,62 @@ export function getWinesBySubRegion(country: string, region: string, subRegion: 
   return getWines().filter(
     (w) => w.country === country && w.region === region && w.subRegion === subRegion
   );
+}
+
+// ─── Winery Operations ─────────────────────────────────────────────────────
+
+const WINERIES_KEY = "wine-mapper-wineries";
+
+export function getWineries(): Winery[] {
+  if (typeof window === "undefined") return [];
+  const data = localStorage.getItem(WINERIES_KEY);
+  return data ? JSON.parse(data) : [];
+}
+
+function saveWineries(wineries: Winery[]) {
+  localStorage.setItem(WINERIES_KEY, JSON.stringify(wineries));
+}
+
+export function addWinery(winery: Winery): Winery {
+  const wineries = getWineries();
+  wineries.unshift(winery);
+  saveWineries(wineries);
+  return winery;
+}
+
+export function updateWinery(winery: Winery) {
+  const wineries = getWineries();
+  const idx = wineries.findIndex((w) => w.id === winery.id);
+  if (idx !== -1) {
+    wineries[idx] = winery;
+    saveWineries(wineries);
+  }
+}
+
+export function deleteWinery(id: string) {
+  const wineries = getWineries().filter((w) => w.id !== id);
+  saveWineries(wineries);
+}
+
+export function getWineryByName(name: string): Winery | undefined {
+  return getWineries().find(
+    (w) => w.name.toLowerCase() === name.toLowerCase()
+  );
+}
+
+export function linkWineToWinery(wineId: string, wineryId: string) {
+  // Update wine
+  const wines = getWines();
+  const wine = wines.find((w) => w.id === wineId);
+  if (wine) {
+    wine.wineryId = wineryId;
+    saveWines(wines);
+  }
+  // Update winery
+  const wineries = getWineries();
+  const winery = wineries.find((w) => w.id === wineryId);
+  if (winery && !winery.wineIds.includes(wineId)) {
+    winery.wineIds.push(wineId);
+    saveWineries(wineries);
+  }
 }

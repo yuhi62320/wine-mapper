@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { WINE_COUNTRIES, findRegion } from "@/lib/countries";
-import { getRegionContent } from "@/lib/region-content";
+import { getRegionContent, RegionContent } from "@/lib/region-content";
 import { getWinesByRegion } from "@/lib/store";
 import { WineLog } from "@/lib/types";
 import WineListMini from "@/components/wine-list-mini";
@@ -34,18 +34,64 @@ export default function RegionPage({ params }: Props) {
   const router = useRouter();
   const [wines, setWines] = useState<WineLog[]>([]);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [remoteContent, setRemoteContent] = useState<RegionContent | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const wineCountry = WINE_COUNTRIES.find((c) => c.code === countryCode);
   const wineRegion = wineCountry
     ? findRegion(wineCountry, regionName)
     : undefined;
-  const content = getRegionContent(countryCode, regionName);
+  const localContent = getRegionContent(countryCode, regionName);
+
+  // Use local content if available, otherwise use Supabase-fetched content
+  const content = localContent ?? remoteContent;
 
   useEffect(() => {
     if (wineCountry) {
       setWines(getWinesByRegion(wineCountry.name, regionName));
     }
   }, [wineCountry, regionName]);
+
+  // Fetch from Supabase cache when local content is not available
+  useEffect(() => {
+    if (localContent || !wineCountry) return;
+
+    setLoading(true);
+    const url = `/api/region-cache?country=${encodeURIComponent(wineCountry.name)}&region=${encodeURIComponent(regionName)}`;
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then((data) => {
+        if (data) {
+          setRemoteContent({
+            countryCode,
+            regionName,
+            nameJa: wineRegion?.nameJa ?? regionName,
+            heroImage: data.heroImage ?? "",
+            description: data.description ?? "",
+            terroir: data.terroir ?? "",
+            climate: data.climate ?? "",
+            history: data.history ?? "",
+            wineStyles: data.wineStyles ?? "",
+            keyGrapes: data.keyGrapes ?? [],
+            topProducers: data.topProducers ?? "",
+            foodPairing: data.foodPairing ?? "",
+            tourism: data.tourism ?? "",
+            nature: data.nature ?? "",
+            culture: data.culture ?? "",
+            regulations: data.regulations ?? "",
+            sommNotes: data.sommNotes ?? "",
+            vintageGuide: data.vintageGuide ?? "",
+            bestSeason: data.bestSeason ?? "",
+            funFact: data.funFact ?? "",
+          });
+        }
+      })
+      .catch((err) => console.error("Failed to fetch region cache:", err))
+      .finally(() => setLoading(false));
+  }, [localContent, wineCountry, countryCode, regionName, wineRegion]);
 
   if (!wineCountry || !wineRegion) {
     return (
@@ -108,6 +154,18 @@ export default function RegionPage({ params }: Props) {
         </div>
       </section>
 
+      {/* Loading indicator for remote content */}
+      {loading && !content && (
+        <section className="px-6 py-16 flex flex-col items-center">
+          <span className="material-symbols-outlined text-primary/30 text-4xl animate-pulse">
+            hourglass_top
+          </span>
+          <p className="text-on-surface-variant text-sm mt-4 font-headline italic">
+            地域ガイドを読み込み中...
+          </p>
+        </section>
+      )}
+
       {/* Editorial Intro */}
       {content && (
         <section className="px-6 py-12 grid grid-cols-12 gap-8">
@@ -136,12 +194,14 @@ export default function RegionPage({ params }: Props) {
         <section className="px-6 mb-8">
           <div className="flex flex-wrap gap-2">
             {content.keyGrapes.map((g) => (
-              <span
+              <Link
                 key={g}
-                className="px-4 py-1.5 bg-surface-container-lowest rounded-full text-xs font-medium text-primary shadow-sm"
+                href={`/grapes?q=${encodeURIComponent(g)}`}
+                className="px-4 py-1.5 bg-surface-container-lowest rounded-full text-xs font-medium text-primary shadow-sm hover:bg-primary/10 transition-colors flex items-center gap-1"
               >
                 {g}
-              </span>
+                <span className="material-symbols-outlined text-[14px] text-primary/40">arrow_forward</span>
+              </Link>
             ))}
           </div>
         </section>

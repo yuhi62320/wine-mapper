@@ -13,7 +13,7 @@ import type { Layer, PathOptions } from "leaflet";
 import type { Feature, GeoJsonObject } from "geojson";
 import "leaflet/dist/leaflet.css";
 import { WineCountry } from "@/lib/countries";
-import { WineLog } from "@/lib/types";
+import { WineLog, Winery } from "@/lib/types";
 
 interface CountryStats {
   country: WineCountry;
@@ -25,7 +25,9 @@ interface CountryStats {
 interface WineMapInnerProps {
   stats: Map<string, CountryStats>;
   wines: WineLog[];
+  wineries: Winery[];
   onSelectCountry: (stats: CountryStats | null) => void;
+  onSelectWinery: (winery: Winery) => void;
 }
 
 // Map ISO country names to 2-letter codes used in our data
@@ -67,6 +69,22 @@ const NAME_TO_CODE: Record<string, string> = {
   Serbia: "RS",
   "Czech Republic": "CZ",
   Czechia: "CZ",
+  Armenia: "AM",
+  Azerbaijan: "AZ",
+  Cyprus: "CY",
+  Slovakia: "SK",
+  Ukraine: "UA",
+  "North Macedonia": "MK",
+  Macedonia: "MK",
+  Albania: "AL",
+  Malta: "MT",
+  Luxembourg: "LU",
+  Tunisia: "TN",
+  Algeria: "DZ",
+  Thailand: "TH",
+  Peru: "PE",
+  Bolivia: "BO",
+  Paraguay: "PY",
 };
 
 // Wine color gradient for explored countries (warm, vintage tones)
@@ -118,6 +136,40 @@ function createGlowIcon(count: number): L.DivIcon {
     `,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
+  });
+}
+
+// Build a winery pin icon
+function createWineryIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `
+      <div style="
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+      ">
+        <div style="
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(117,91,0,0.3) 0%, transparent 70%);
+        "></div>
+        <span class="material-symbols-outlined" style="
+          font-size: 22px;
+          color: #755b00;
+          filter: drop-shadow(0 0 4px rgba(117,91,0,0.5));
+          font-variation-settings: 'FILL' 1;
+          position: relative;
+          z-index: 1;
+        ">castle</span>
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
   });
 }
 
@@ -174,7 +226,9 @@ function InjectStyles() {
 export default function WineMapInner({
   stats,
   wines,
+  wineries,
   onSelectCountry,
+  onSelectWinery,
 }: WineMapInnerProps) {
   const [geoData, setGeoData] = useState<GeoJsonObject | null>(null);
 
@@ -218,6 +272,9 @@ export default function WineMapInner({
       SVN: "SI", ISR: "IL", CAN: "CA", BRA: "BR", URY: "UY",
       GBR: "GB", CHN: "CN", IND: "IN", MEX: "MX", MAR: "MA",
       TUR: "TR", MDA: "MD", BGR: "BG", SRB: "RS", CZE: "CZ",
+      ARM: "AM", AZE: "AZ", CYP: "CY", SVK: "SK", UKR: "UA",
+      MKD: "MK", ALB: "AL", MLT: "MT", LUX: "LU", TUN: "TN",
+      DZA: "DZ", THA: "TH", PER: "PE", BOL: "BO", PRY: "PY",
     };
     if (iso3 && iso3Map[iso3]) return iso3Map[iso3];
 
@@ -255,9 +312,7 @@ export default function WineMapInner({
       );
 
       layer.on("click", () => {
-        if (s.explored) {
-          onSelectCountry(s);
-        }
+        onSelectCountry(s);
       });
     }
   }
@@ -318,6 +373,21 @@ export default function WineMapInner({
           }}
         />
       ))}
+
+      {/* Winery pins */}
+      {wineries
+        .filter((w) => w.lat != null && w.lng != null)
+        .map((w) => (
+          <Marker
+            key={`winery-${w.id}`}
+            position={[w.lat!, w.lng!]}
+            icon={createWineryIcon()}
+            eventHandlers={{
+              click: () => onSelectWinery(w),
+            }}
+          >
+          </Marker>
+        ))}
 
       {/* Labels on top of choropleth */}
       <TileLayer

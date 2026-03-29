@@ -102,6 +102,7 @@ export function buildRegionLookupKey(params: {
   ];
   return parts
     .map((p) => (p ?? "").trim().toLowerCase())
+    .filter(Boolean)
     .join("|");
 }
 
@@ -234,5 +235,95 @@ export async function setCachedRegion(data: {
 
   if (error) {
     console.error("[supabase-cache] setCachedRegion error:", error.message);
+  }
+}
+
+// ─── Winery Cache Operations ────────────────────────────────────────────────
+
+export interface WineryCacheRow {
+  id?: string;
+  lookup_key: string;
+  name: string;
+  name_ja?: string;
+  country: string;
+  region?: string;
+  sub_region?: string;
+  village?: string;
+  lat?: number;
+  lng?: number;
+  website?: string;
+  description?: string;
+  guide_data?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Build a normalized lookup key for winery cache.
+ * Uses lowercase producer name.
+ */
+export function buildWineryLookupKey(producerName: string): string {
+  return producerName.trim().toLowerCase();
+}
+
+/**
+ * Retrieve a cached winery by producer name lookup key.
+ */
+export async function getCachedWinery(
+  lookupKey: string
+): Promise<WineryCacheRow | null> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("winery_cache")
+    .select("*")
+    .eq("lookup_key", lookupKey)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[supabase-cache] getCachedWinery error:", error.message);
+    return null;
+  }
+  return data as WineryCacheRow | null;
+}
+
+/**
+ * Upsert a winery into the cache.
+ */
+export async function setCachedWinery(data: {
+  lookupKey: string;
+  name: string;
+  nameJa?: string;
+  country: string;
+  region?: string;
+  subRegion?: string;
+  village?: string;
+  lat?: number;
+  lng?: number;
+  website?: string;
+  description?: string;
+  guideData?: Record<string, unknown>;
+}): Promise<void> {
+  const supabase = createServiceClient();
+  const { error } = await supabase.from("winery_cache").upsert(
+    {
+      lookup_key: data.lookupKey,
+      name: data.name,
+      name_ja: data.nameJa ?? null,
+      country: data.country,
+      region: data.region ?? null,
+      sub_region: data.subRegion ?? null,
+      village: data.village ?? null,
+      lat: data.lat ?? null,
+      lng: data.lng ?? null,
+      website: data.website ?? null,
+      description: data.description ?? null,
+      guide_data: data.guideData ?? null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "lookup_key" }
+  );
+
+  if (error) {
+    console.error("[supabase-cache] setCachedWinery error:", error.message);
   }
 }

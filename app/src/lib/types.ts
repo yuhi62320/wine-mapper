@@ -60,6 +60,7 @@ export interface WineLog {
   tasteType: string;            // 味わいタイプ (Sec, Brut, Doux, etc.)
   certifications: string[];     // 認証・受賞 (Bio, Organic, medal, etc.)
   producerUrl: string;          // 生産者HP
+  rakutenUrl: string;           // 楽天市場アフィリエイトリンク
 
   // === User input ===
   type: WineType;
@@ -73,6 +74,7 @@ export interface WineLog {
 
   // === Saved tours (optional) ===
   tours?: WineTour[];
+  wineryId?: string;
 }
 
 export interface WineTour {
@@ -146,4 +148,21 @@ export interface AromaSubcategory {
 export interface AromaCategory {
   name: AromaDescriptor;
   subcategories: AromaSubcategory[];
+}
+
+export interface Winery {
+  id: string;
+  name: string;
+  nameJa: string;
+  country: string;
+  region: string;
+  subRegion: string;
+  village: string;
+  lat: number | null;
+  lng: number | null;
+  website: string;
+  description: string;
+  guideData: Record<string, unknown> | null;
+  wineIds: string[]; // IDs of associated WineLog entries
+  createdAt: string;
 }

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { WineCountry } from "@/lib/countries";
-import { WineLog } from "@/lib/types";
+import { WineLog, Winery } from "@/lib/types";
 
 export interface CountryStats {
   country: WineCountry;
@@ -23,9 +23,11 @@ const WineMapInner = dynamic(() => import("./wine-map-inner"), {
 interface WineMapProps {
   stats: Map<string, CountryStats>;
   wines: WineLog[];
+  wineries: Winery[];
   onSelectCountry: (stats: CountryStats | null) => void;
+  onSelectWinery: (winery: Winery) => void;
 }
 
-export default function WineMap({ stats, wines, onSelectCountry }: WineMapProps) {
-  return <WineMapInner stats={stats} wines={wines} onSelectCountry={onSelectCountry} />;
+export default function WineMap({ stats, wines, wineries, onSelectCountry, onSelectWinery }: WineMapProps) {
+  return <WineMapInner stats={stats} wines={wines} wineries={wineries} onSelectCountry={onSelectCountry} onSelectWinery={onSelectWinery} />;
 }
