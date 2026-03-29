@@ -174,19 +174,29 @@ export default function WineListPage() {
                     )}
                   </div>
 
-                  {/* Rakuten affiliate link */}
+                  {/* Rakuten affiliate link (use span+onClick to avoid nested <a> inside <Link>) */}
                   {wine.rakutenUrl && (
-                    <a
-                      href={wine.rakutenUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#bf0000] hover:bg-[#a00000] text-white rounded-full text-[10px] font-label font-bold tracking-wider shadow-sm transition-all mt-1"
+                    <span
+                      role="link"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(wine.rakutenUrl, "_blank", "noopener,noreferrer");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          window.open(wine.rakutenUrl, "_blank", "noopener,noreferrer");
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#bf0000] hover:bg-[#a00000] text-white rounded-full text-[10px] font-label font-bold tracking-wider shadow-sm transition-all mt-1 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[12px]">shopping_bag</span>
                       楽天市場で購入
                       <span className="material-symbols-outlined text-[10px]">open_in_new</span>
-                    </a>
+                    </span>
                   )}
                 </div>
 
