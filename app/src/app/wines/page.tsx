@@ -113,20 +113,20 @@ export default function WineListPage() {
 
                 {/* Wine info */}
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  {/* Producer */}
+                  {/* Producer (highlight) */}
                   {wine.producer && (
-                    <p className="text-xs font-label text-on-surface-variant uppercase tracking-wider truncate">
+                    <h3 className="text-base font-headline font-bold text-primary leading-tight truncate">
                       {wine.producer}
-                    </p>
+                    </h3>
                   )}
 
-                  {/* Name and vintage */}
-                  <h3 className="text-base font-headline font-bold text-primary leading-tight truncate">
+                  {/* Name and vintage (sub) */}
+                  <p className="text-sm font-body text-on-surface-variant truncate">
                     {wine.name}
                     {wine.vintage && (
-                      <span className="text-sm ml-1">{wine.vintage}</span>
+                      <span className="text-xs ml-1">{wine.vintage}</span>
                     )}
-                  </h3>
+                  </p>
 
                   {/* Country / Region */}
                   {wine.country && (
@@ -173,6 +173,21 @@ export default function WineListPage() {
                       </span>
                     )}
                   </div>
+
+                  {/* Rakuten affiliate link */}
+                  {wine.rakutenUrl && (
+                    <a
+                      href={wine.rakutenUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#bf0000] hover:bg-[#a00000] text-white rounded-full text-[10px] font-label font-bold tracking-wider shadow-sm transition-all mt-1"
+                    >
+                      <span className="material-symbols-outlined text-[12px]">shopping_bag</span>
+                      楽天市場で購入
+                      <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                    </a>
+                  )}
                 </div>
 
                 {/* Arrow indicator */}

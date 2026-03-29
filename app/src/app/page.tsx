@@ -244,18 +244,18 @@ export default function HomePage() {
                       )}
                     </div>
                     {wine.producer && (
-                      <p className={`text-[10px] font-label text-on-surface-variant uppercase tracking-wider ${
-                        isFlipped ? "text-right" : ""
-                      }`}>
+                      <h4 className="text-2xl font-headline font-black text-primary leading-none">
                         {wine.producer}
-                      </p>
+                      </h4>
                     )}
-                    <h4 className="text-2xl font-headline font-black text-primary leading-none">
+                    <p className={`text-sm font-body text-on-surface-variant ${
+                      isFlipped ? "text-right" : ""
+                    }`}>
                       {wine.name}{" "}
                       {wine.vintage && (
-                        <span className="text-lg">{wine.vintage}</span>
+                        <span className="text-xs">{wine.vintage}</span>
                       )}
-                    </h4>
+                    </p>
                     <div className="space-y-1">
                       {wine.country && (
                         <p

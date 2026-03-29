@@ -192,12 +192,12 @@ export default function WineDetailPage() {
 
           {/* Overlaid wine info at the bottom */}
           <div className="absolute bottom-0 left-0 right-0 px-5 pb-6">
-            {wine.producer && (
-              <p className="font-label text-white/70 text-xs uppercase tracking-widest mb-1 drop-shadow">{wine.producer}</p>
-            )}
-            <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl text-white leading-tight tracking-tight mb-2 drop-shadow-lg">
-              {wine.name || wine.producer}
+            <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl text-white leading-tight tracking-tight mb-1 drop-shadow-lg">
+              {wine.producer || wine.name}
             </h1>
+            {wine.name && wine.name !== wine.producer && (
+              <p className="font-body text-white/80 text-lg mb-2 drop-shadow">{wine.name}{wine.vintage ? ` ${wine.vintage}` : ""}</p>
+            )}
             {wine.rating > 0 && (
               <div className="flex items-center gap-1 mt-2">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -246,15 +246,15 @@ export default function WineDetailPage() {
             </span>
           </div>
 
-          {/* Producer */}
-          {wine.producer && (
-            <p className="font-label text-white/60 text-xs uppercase tracking-widest mb-1">{wine.producer}</p>
-          )}
-
-          {/* Wine name */}
-          <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl text-white leading-tight tracking-tight mb-2">
-            {wine.name || wine.producer}
+          {/* Producer (highlight) */}
+          <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl text-white leading-tight tracking-tight mb-1">
+            {wine.producer || wine.name}
           </h1>
+
+          {/* Wine name (sub) */}
+          {wine.name && wine.name !== wine.producer && (
+            <p className="font-body text-white/70 text-lg mb-2">{wine.name}{wine.vintage ? ` ${wine.vintage}` : ""}</p>
+          )}
 
           {/* Star rating */}
           {wine.rating > 0 && (
