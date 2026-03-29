@@ -62,6 +62,7 @@ export default function EditWinePage() {
   const [tasteType, setTasteType] = useState("");
   const [certifications, setCertifications] = useState("");
   const [producerUrl, setProducerUrl] = useState("");
+  const [rakutenUrl, setRakutenUrl] = useState("");
   const [type, setType] = useState<WineType>("red");
   const [price, setPrice] = useState("");
   const [rating, setRating] = useState(0);
@@ -113,6 +114,7 @@ export default function EditWinePage() {
     setTasteType(found.tasteType);
     setCertifications(found.certifications.join(", "));
     setProducerUrl(found.producerUrl);
+    setRakutenUrl(found.rakutenUrl ?? "");
     setType(found.type);
     setPrice(found.price != null ? String(found.price) : "");
     setRating(found.rating);
@@ -154,6 +156,7 @@ export default function EditWinePage() {
         .map((c) => c.trim())
         .filter(Boolean),
       producerUrl,
+      rakutenUrl,
       type,
       price: price ? parseInt(price) : null,
       aromas: selectedAromas,

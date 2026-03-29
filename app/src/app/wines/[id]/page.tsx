@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { WineLog, WINE_TYPE_LABELS, WINE_TYPE_COLORS, PalateLevel } from "@/lib/types";
-import { getWines } from "@/lib/store";
+import { WineLog, Winery, WINE_TYPE_LABELS, WINE_TYPE_COLORS, PalateLevel } from "@/lib/types";
+import { getWines, getWineries, getWineryByName, addWinery, linkWineToWinery } from "@/lib/store";
+import { WINE_COUNTRIES } from "@/lib/countries";
 import { getWinePhoto } from "@/lib/photo-store";
 import { getDefaultPalate } from "@/lib/wine-defaults";
 import RadarChart from "@/components/radar-chart";
@@ -25,6 +26,8 @@ export default function WineDetailPage() {
   const router = useRouter();
   const [wine, setWine] = useState<WineLog | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [wineryLoading, setWineryLoading] = useState(false);
+  const [linkedWinery, setLinkedWinery] = useState<Winery | null>(null);
 
   useEffect(() => {
     const wines = getWines();
@@ -36,8 +39,71 @@ export default function WineDetailPage() {
   useEffect(() => {
     if (wine) {
       setPhoto(getWinePhoto(wine.id));
+      // Check if winery is already linked
+      if (wine.wineryId) {
+        const winery = getWineries().find((w) => w.id === wine.wineryId);
+        if (winery) setLinkedWinery(winery);
+      }
     }
   }, [wine]);
+
+  async function handleRegisterWinery() {
+    if (!wine?.producer) return;
+
+    // Check if winery already exists locally
+    const existing = getWineryByName(wine.producer);
+    if (existing) {
+      linkWineToWinery(wine.id, existing.id);
+      setLinkedWinery(existing);
+      setWine({ ...wine, wineryId: existing.id });
+      return;
+    }
+
+    setWineryLoading(true);
+    try {
+      const res = await fetch("/api/winery-lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          producer: wine.producer,
+          country: wine.country,
+          region: wine.region,
+          subRegion: wine.subRegion,
+          village: wine.village,
+          grapeVarieties: wine.grapeVarieties,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      const data = await res.json();
+
+      const winery: Winery = {
+        id: crypto.randomUUID(),
+        name: data.name || wine.producer,
+        nameJa: data.nameJa || "",
+        country: data.country || wine.country,
+        region: data.region || wine.region,
+        subRegion: data.subRegion || wine.subRegion,
+        village: data.village || wine.village,
+        lat: data.lat ?? null,
+        lng: data.lng ?? null,
+        website: data.website || "",
+        description: data.description || "",
+        guideData: data.guideData || null,
+        wineIds: [wine.id],
+        createdAt: new Date().toISOString(),
+      };
+
+      addWinery(winery);
+      linkWineToWinery(wine.id, winery.id);
+      setLinkedWinery(winery);
+      setWine({ ...wine, wineryId: winery.id });
+    } catch (err) {
+      console.error("Failed to register winery:", err);
+    } finally {
+      setWineryLoading(false);
+    }
+  }
 
   if (!wine) {
     return (
@@ -48,16 +114,6 @@ export default function WineDetailPage() {
   }
 
   const gradient = WINE_TYPE_GRADIENTS[wine.type] || WINE_TYPE_GRADIENTS.red;
-  const purchaseQuery = encodeURIComponent(
-    [wine.producer, wine.name, wine.vintage].filter(Boolean).join(" ")
-  );
-  const shops = [
-    { name: "Enoteca", url: `https://www.enoteca.co.jp/search?keyword=${purchaseQuery}` },
-    { name: "Rakuten", url: `https://search.rakuten.co.jp/search/mall/${purchaseQuery}/?l-id=s_search&l2-id=shop_header_search` },
-    { name: "Amazon.co.jp", url: `https://www.amazon.co.jp/s?k=${purchaseQuery}` },
-    { name: "Vivino", url: `https://www.vivino.com/search/wines?q=${purchaseQuery}` },
-  ];
-
   // Radar chart data
   const isRed = wine.type === "red";
   const showTannin = wine.palate.tannin !== null;
@@ -335,18 +391,18 @@ export default function WineDetailPage() {
             </div>
           )}
 
-          {/* Producer URL */}
-          {wine.producerUrl && (
+          {/* Rakuten Affiliate Link */}
+          {wine.rakutenUrl && (
             <div className="mt-4 pt-4 border-t border-[#d8c1c2]/30">
               <a
-                href={wine.producerUrl}
+                href={wine.rakutenUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-label text-[#561922] hover:text-[#722f37] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#bf0000] hover:bg-[#a00000] text-white rounded-full text-[11px] font-label font-bold tracking-wider shadow-sm hover:shadow-md transition-all"
               >
-                <span className="material-symbols-outlined text-[16px]">language</span>
-                公式サイト
-                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                <span className="material-symbols-outlined text-[14px]">shopping_bag</span>
+                楽天市場で探す
+                <span className="material-symbols-outlined text-[12px]">open_in_new</span>
               </a>
             </div>
           )}
@@ -428,13 +484,13 @@ export default function WineDetailPage() {
         </div>
 
         {/* ===== Region Guide Section ===== */}
-        {wine.region && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
-            <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-3">
-              産地ガイド
-            </h2>
+        {wine.region && (() => {
+          const countryObj = WINE_COUNTRIES.find((c) => c.name === wine.country);
+          const regionLink = countryObj
+            ? `/map/region/${countryObj.code}/${encodeURIComponent(wine.region)}`
+            : null;
+          const inner = (
             <div className="flex items-center gap-4">
-              {/* Thumbnail placeholder with map pin icon */}
               <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[#f6f3ed] to-[#d8c1c2]/30 flex items-center justify-center flex-shrink-0">
                 <span className="material-symbols-outlined text-[28px] text-[#722f37]/50">map</span>
               </div>
@@ -451,6 +507,73 @@ export default function WineDetailPage() {
               </div>
               <span className="material-symbols-outlined text-[20px] text-[#534343]/40">chevron_right</span>
             </div>
+          );
+          return (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
+              <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-3">
+                産地ガイド
+              </h2>
+              {regionLink ? (
+                <Link href={regionLink} className="block hover:opacity-80 transition-opacity">
+                  {inner}
+                </Link>
+              ) : inner}
+            </div>
+          );
+        })()}
+
+        {/* ===== Winery Section ===== */}
+        {wine.producer && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
+            <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-3">
+              ワイナリー
+            </h2>
+            {linkedWinery ? (
+              <Link
+                href={`/wineries/${linkedWinery.id}`}
+                className="flex items-center gap-4 group"
+              >
+                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[#561922] to-[#722f37] flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[28px] text-white/80">castle</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-headline text-base font-bold text-[#1c1c18] truncate group-hover:text-[#722f37] transition-colors">
+                    {linkedWinery.nameJa || linkedWinery.name}
+                  </p>
+                  <p className="font-body text-xs text-[#534343] mt-0.5">
+                    {[linkedWinery.region, linkedWinery.country].filter(Boolean).join(" · ")}
+                  </p>
+                  {linkedWinery.description && (
+                    <p className="font-body text-[11px] text-[#534343]/60 mt-1 line-clamp-2">
+                      {linkedWinery.description}
+                    </p>
+                  )}
+                </div>
+                <span className="material-symbols-outlined text-[20px] text-[#534343]/40 group-hover:text-[#722f37] transition-colors">chevron_right</span>
+              </Link>
+            ) : (
+              <button
+                onClick={handleRegisterWinery}
+                disabled={wineryLoading}
+                className="w-full flex items-center gap-4 group"
+              >
+                <div className="w-16 h-16 rounded-xl bg-[#561922]/5 border-2 border-dashed border-[#561922]/20 flex items-center justify-center flex-shrink-0 group-hover:border-[#561922]/40 transition-colors">
+                  {wineryLoading ? (
+                    <span className="material-symbols-outlined text-[28px] text-[#722f37]/50 animate-spin">progress_activity</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-[28px] text-[#722f37]/50">add_business</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="font-headline text-base font-bold text-[#1c1c18] truncate">
+                    {wine.producer}
+                  </p>
+                  <p className="font-body text-xs text-[#722f37] mt-0.5">
+                    {wineryLoading ? "ワイナリー情報を検索中..." : "タップしてワイナリー情報を登録"}
+                  </p>
+                </div>
+              </button>
+            )}
           </div>
         )}
 
@@ -533,27 +656,6 @@ export default function WineDetailPage() {
             ))}
           </div>
         )}
-
-        {/* ===== Purchase Links ===== */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
-          <h2 className="font-label text-[10px] tracking-widest text-[#534343]/60 mb-3">
-            購入リンク
-          </h2>
-          <div className="grid grid-cols-2 gap-2">
-            {shops.map((shop) => (
-              <a
-                key={shop.name}
-                href={shop.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-label font-semibold text-[#561922] bg-[#561922]/5 rounded-xl hover:bg-[#561922]/10 transition-colors border border-[#d8c1c2]/30"
-              >
-                {shop.name}
-                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-              </a>
-            ))}
-          </div>
-        </div>
 
         {/* ===== Date Recorded ===== */}
         <div className="text-center py-4">
