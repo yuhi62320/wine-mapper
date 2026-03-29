@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2025-01-01",
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
@@ -137,6 +137,12 @@ RULES:
     }
 
     const data = JSON.parse(jsonMatch[0]);
+
+    // Clean up cite tags from web search results
+    if (data.description) {
+      data.description = data.description.replace(/<\/?cite[^>]*>/g, "");
+    }
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("[wine-enrich] Error:", err);
