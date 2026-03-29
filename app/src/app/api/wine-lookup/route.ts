@@ -8,6 +8,7 @@ import {
   setCachedWine,
   WineCacheRow,
 } from "@/lib/supabase-cache";
+import { AROMA_LIST_FOR_PROMPT } from "@/lib/aroma-list";
 
 function getAnthropicKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -85,20 +86,32 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": "2025-01-01",
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 1200,
+        max_tokens: 1500,
+        tools: [
+          {
+            type: "web_search_20250305",
+            name: "web_search",
+            max_uses: 2,
+          },
+        ],
         messages: [
           {
             role: "user",
-            content: `You are a sommelier with encyclopedic wine knowledge. Given the following wine, return ONLY a valid JSON object (no markdown, no explanation) with specific information about THIS wine (not generic grape/region info).
+            content: `You are a sommelier. Search the web for real information about this wine, then return structured data.
 
 Wine:
 ${wineDescription}
 
-Return this exact JSON structure:
+Search Vivino, Wine-Searcher, Winalist, or wine review sites for REAL tasting notes, reviews, and pricing for this specific wine.
+
+IMPORTANT - For aromas, you MUST select ONLY from this predefined list:
+${AROMA_LIST_FOR_PROMPT}
+
+Return ONLY a valid JSON object (no markdown, no explanation):
 {
   "producer": "<producer/domaine/chateau name>",
   "name": "<wine name / cuvee name>",
@@ -107,16 +120,16 @@ Return this exact JSON structure:
   "subRegion": "<sub-region if applicable, otherwise empty string>",
   "village": "<village/commune if applicable, otherwise empty string>",
   "appellation": "<appellation / AOC / DOCG etc., otherwise empty string>",
-  "classification": "<quality classification e.g. Premier Cru, Reserva, otherwise empty string>",
+  "classification": "<quality classification>",
   "grapeVarieties": [<grape variety names>],
   "abv": <typical ABV as number or null>,
-  "aging": "<aging info e.g. Barrique 12 months, otherwise empty string>",
-  "tasteType": "<taste type e.g. Sec, Brut, Doux, otherwise empty string>",
-  "bottler": "<bottler info if known, otherwise empty string>",
-  "certifications": [<certifications like Bio, Organic, or empty array>],
-  "producerUrl": "<producer website URL if known, otherwise empty string>",
-  "priceRange": { "min": <number in JPY>, "max": <number in JPY> },
-  "aromas": [<up to 8 Japanese aroma descriptors specific to this wine, e.g. "カシス", "ヴァニラ", "黒胡椒">],
+  "aging": "<aging info>",
+  "tasteType": "<taste type>",
+  "bottler": "<bottler info>",
+  "certifications": [<certifications>],
+  "producerUrl": "<producer website URL if found>",
+  "priceRange": { "min": <JPY number>, "max": <JPY number> },
+  "aromas": [<5-10 from predefined list above, in Japanese>],
   "palate": {
     "sweetness": <1-5>,
     "acidity": <1-5>,
@@ -124,13 +137,16 @@ Return this exact JSON structure:
     "body": <1-5>,
     "finish": <1-5>
   },
-  "description": "<1-2 sentence Japanese description of this specific wine's character>",
-  "suggestedGrapes": [<grape variety names if not provided in input, otherwise empty array>],
+  "description": "<2-3 sentence Japanese description based on real reviews>",
+  "suggestedGrapes": [<grape variety names if not in input>],
   "suggestedAbv": <typical ABV as number or null>,
   "confidence": "high" | "medium" | "low"
 }
 
-Be specific to the actual wine, not generic. If the producer is famous (e.g., Château Margaux), reflect its unique style. Price should reflect Japanese retail market.`,
+RULES:
+- Aromas MUST come from the predefined list only. Do NOT invent new descriptors.
+- Price should reflect Japanese retail market (search wine-searcher or rakuten).
+- Be specific to this wine, not generic. Base on real reviews found.`,
           },
         ],
       }),
@@ -146,12 +162,16 @@ Be specific to the actual wine, not generic. If the producer is famous (e.g., Ch
     }
 
     const apiResult = await res.json();
-    const text =
-      apiResult.content?.[0]?.type === "text"
-        ? apiResult.content[0].text
-        : "";
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    // Extract text from all content blocks (web_search responses have multiple blocks)
+    let fullText = "";
+    for (const block of apiResult.content || []) {
+      if (block.type === "text") {
+        fullText += block.text;
+      }
+    }
+
+    const jsonMatch = fullText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
         { error: "Failed to parse response" },
