@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
   GeoJSON,
   Marker,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
 import type { Layer, PathOptions } from "leaflet";
@@ -14,6 +15,7 @@ import type { Feature, GeoJsonObject } from "geojson";
 import "leaflet/dist/leaflet.css";
 import { WineCountry } from "@/lib/countries";
 import { WineLog, Winery } from "@/lib/types";
+import type { RegionPolygonCollection } from "@/lib/supabase-polygons";
 
 interface CountryStats {
   country: WineCountry;
@@ -223,6 +225,23 @@ function InjectStyles() {
   return null;
 }
 
+// Region polygon styles
+const REGION_FILL_COLOR = "#722f37";
+const REGION_FILL_OPACITY = 0.3;
+const REGION_FILL_OPACITY_HOVER = 0.5;
+const REGION_STROKE_COLOR = "#722f37";
+const REGION_STROKE_WEIGHT = 2;
+
+/** Watch zoom level changes and report to parent */
+function ZoomWatcher({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+  useMapEvents({
+    zoomend: (e) => {
+      onZoomChange(e.target.getZoom());
+    },
+  });
+  return null;
+}
+
 export default function WineMapInner({
   stats,
   wines,
@@ -231,6 +250,54 @@ export default function WineMapInner({
   onSelectWinery,
 }: WineMapInnerProps) {
   const [geoData, setGeoData] = useState<GeoJsonObject | null>(null);
+  const [regionPolygons, setRegionPolygons] = useState<RegionPolygonCollection | null>(null);
+  const [regionPolygonsKey, setRegionPolygonsKey] = useState(0);
+  const [loadingRegions, setLoadingRegions] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(2);
+  const [activeCountryCode, setActiveCountryCode] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Fetch region polygons for a country
+  const fetchRegionPolygons = useCallback(async (countryName: string, countryCode: string) => {
+    // Abort any in-flight request
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setLoadingRegions(true);
+    setActiveCountryCode(countryCode);
+    try {
+      const res = await fetch(
+        `/api/region-polygons?country=${encodeURIComponent(countryName)}`,
+        { signal: controller.signal }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: RegionPolygonCollection = await res.json();
+      if (!controller.signal.aborted) {
+        setRegionPolygons(data.features.length > 0 ? data : null);
+        setRegionPolygonsKey((k) => k + 1);
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      console.error("[WineMapInner] Failed to fetch region polygons:", err);
+      if (!controller.signal.aborted) {
+        setRegionPolygons(null);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoadingRegions(false);
+      }
+    }
+  }, []);
+
+  // Clear region polygons when zooming out
+  const handleZoomChange = useCallback((zoom: number) => {
+    setCurrentZoom(zoom);
+    if (zoom < 5) {
+      setRegionPolygons(null);
+      setActiveCountryCode(null);
+    }
+  }, []);
 
   useEffect(() => {
     fetch(GEOJSON_URL)
@@ -313,6 +380,7 @@ export default function WineMapInner({
 
       layer.on("click", () => {
         onSelectCountry(s);
+        fetchRegionPolygons(s.country.name, s.country.code);
       });
     }
   }
@@ -361,6 +429,72 @@ export default function WineMapInner({
           onEachFeature={onEachFeature}
         />
       )}
+
+      {/* Region polygon overlay */}
+      {regionPolygons && currentZoom >= 5 && (
+        <GeoJSON
+          key={`region-polygons-${regionPolygonsKey}`}
+          data={regionPolygons as GeoJsonObject}
+          style={() => ({
+            fillColor: REGION_FILL_COLOR,
+            fillOpacity: REGION_FILL_OPACITY,
+            color: REGION_STROKE_COLOR,
+            weight: REGION_STROKE_WEIGHT,
+            opacity: 0.8,
+          })}
+          onEachFeature={(feature: Feature, layer: Layer) => {
+            const props = feature.properties || {};
+            const label = props.name_ja
+              ? `${props.name_ja} (${props.name})`
+              : props.name || "";
+            layer.bindTooltip(
+              `<div style="text-align:center;font-size:12px;"><b>${label}</b></div>`,
+              { sticky: true }
+            );
+
+            // Hover effects
+            layer.on("mouseover", () => {
+              (layer as L.Path).setStyle({ fillOpacity: REGION_FILL_OPACITY_HOVER });
+            });
+            layer.on("mouseout", () => {
+              (layer as L.Path).setStyle({ fillOpacity: REGION_FILL_OPACITY });
+            });
+
+            // Click to navigate to region page
+            layer.on("click", () => {
+              if (activeCountryCode && props.name) {
+                window.location.href = `/map/region/${activeCountryCode}/${encodeURIComponent(props.name)}`;
+              }
+            });
+          }}
+        />
+      )}
+
+      {/* Loading indicator for region polygons */}
+      {loadingRegions && (
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            background: "rgba(255,255,255,0.9)",
+            backdropFilter: "blur(8px)",
+            padding: "6px 16px",
+            borderRadius: 20,
+            fontSize: 12,
+            color: "#722f37",
+            fontWeight: 500,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            pointerEvents: "none",
+          }}
+        >
+          Loading regions...
+        </div>
+      )}
+
+      <ZoomWatcher onZoomChange={handleZoomChange} />
 
       {/* Glowing pin markers for explored countries */}
       {exploredEntries.map((s) => (
