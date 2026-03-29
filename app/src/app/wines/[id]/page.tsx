@@ -461,7 +461,7 @@ export default function WineDetailPage() {
             味わいチャート
           </h2>
           <div className="flex justify-center">
-            <RadarChart data={wineData} baseData={baseData} size={220} color={WINE_TYPE_COLORS[wine.type]} />
+            <RadarChart data={wineData} baseData={baseData} size={220} />
           </div>
           {baseData && (
             <div className="flex items-center justify-center gap-5 mt-3 text-[11px] font-label text-[#534343]/60">
@@ -470,7 +470,7 @@ export default function WineDetailPage() {
                 品種の特徴
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px]" style={{ backgroundColor: WINE_TYPE_COLORS[wine.type] }} />
+                <span className="inline-block w-5 h-[2px] bg-[#722f37]" />
                 あなたの評価
               </span>
             </div>
