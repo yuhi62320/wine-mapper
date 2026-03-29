@@ -95,6 +95,7 @@ export default function NewWinePage() {
   const [rakutenUrl, setRakutenUrl] = useState("");
   const [rakutenItems, setRakutenItems] = useState<RakutenItem[]>([]);
   const [rakutenLoading, setRakutenLoading] = useState(false);
+  const [rakutenSearched, setRakutenSearched] = useState(false);
   const [type, setType] = useState<WineType>("red");
   const [price, setPrice] = useState("");
   const [rating, setRating] = useState(0);
@@ -374,13 +375,15 @@ export default function NewWinePage() {
     country?: string;
   }) {
     const keyword = buildRakutenKeyword(params);
-    if (!keyword) return;
+    if (!keyword) {
+      setRakutenSearched(true);
+      return;
+    }
     setRakutenLoading(true);
     setRakutenItems([]);
     try {
       const result = await searchRakutenWines(keyword);
       setRakutenItems(result.items);
-      // Auto-select first item's affiliate URL
       if (result.items.length > 0) {
         setRakutenUrl(result.items[0].itemUrl);
       }
@@ -388,6 +391,7 @@ export default function NewWinePage() {
       // silently fail - rakuten is supplementary
     } finally {
       setRakutenLoading(false);
+      setRakutenSearched(true);
     }
   }
 
@@ -617,9 +621,9 @@ export default function NewWinePage() {
     setLogResult(result);
   }
 
-  // When result screen appears, always ensure Rakuten search runs
+  // When result screen appears, ensure Rakuten search runs if not already done
   useEffect(() => {
-    if (logResult && rakutenItems.length === 0 && !rakutenLoading) {
+    if (logResult && !rakutenSearched && !rakutenLoading) {
       triggerRakutenSearch({
         producer: logResult.wine.producer,
         name: logResult.wine.name,
@@ -755,21 +759,24 @@ export default function NewWinePage() {
             </div>
           )}
 
-          {/* Rakuten Affiliate Products - always shown on result screen */}
-          <div className="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-[#d8c1c2]/20">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-px flex-1 bg-[#d8c1c2]/30" />
-              <span className="text-[10px] font-label tracking-[0.2em] uppercase text-[#bf0000]">
-                楽天市場で購入
-              </span>
-              <div className="h-px flex-1 bg-[#d8c1c2]/30" />
-            </div>
-            {(rakutenLoading || rakutenItems.length === 0) ? (
+          {/* Rakuten Affiliate Products */}
+          {rakutenLoading && (
+            <div className="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-[#d8c1c2]/20">
               <div className="flex items-center justify-center gap-2 py-4">
                 <div className="w-4 h-4 border-2 border-[#bf0000]/30 border-t-[#bf0000] rounded-full animate-spin" />
-                <span className="text-xs text-[#534343]/60">商品を検索中...</span>
+                <span className="text-xs text-[#534343]/60">楽天市場で商品を検索中...</span>
               </div>
-            ) : (
+            </div>
+          )}
+          {!rakutenLoading && rakutenItems.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-[#d8c1c2]/20">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-px flex-1 bg-[#d8c1c2]/30" />
+                <span className="text-[10px] font-label tracking-[0.2em] uppercase text-[#bf0000]">
+                  楽天市場で購入
+                </span>
+                <div className="h-px flex-1 bg-[#d8c1c2]/30" />
+              </div>
               <div className="space-y-2">
                 {rakutenItems.map((item, idx) => (
                   <a
@@ -808,11 +815,11 @@ export default function NewWinePage() {
                   </a>
                 ))}
               </div>
-            )}
-            <p className="text-[10px] text-[#534343]/50 text-center mt-3">
-              いつでも記録ページから購入できます
-            </p>
-          </div>
+              <p className="text-[10px] text-[#534343]/50 text-center mt-3">
+                いつでも記録ページから購入できます
+              </p>
+            </div>
+          )}
 
           {/* Home Button */}
           <button
