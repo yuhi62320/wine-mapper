@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from "uuid";
 import {
   WineType,
   WineLog,
-  WineTour,
   PalateLevel,
   WINE_TYPE_LABELS,
   WINE_TYPE_COLORS,
@@ -28,9 +27,11 @@ import {
 } from "@/lib/wine-defaults";
 import { normalizeGrapes, getGrapeSuggestions, findGrape } from "@/lib/grape-master";
 import RadarChart from "@/components/radar-chart";
-import { getRegionImage, getSectionImage, getGuideText } from "@/lib/region-images";
+// Region guide removed to reduce token consumption
+// import { getRegionImage, getSectionImage, getGuideText } from "@/lib/region-images";
 import { getAromaVisual, AROMA_IMAGE_COPYRIGHT } from "@/lib/aroma-images";
 import { saveWinePhoto } from "@/lib/photo-store";
+import { buildRakutenKeyword, searchRakutenWines, RakutenItem } from "@/lib/rakuten";
 
 const PALATE_LABELS: Record<string, { label: string; levels: string[] }> = {
   sweetness: {
@@ -91,6 +92,9 @@ export default function NewWinePage() {
   const [tasteType, setTasteType] = useState("");
   const [certifications, setCertifications] = useState("");
   const [producerUrl, setProducerUrl] = useState("");
+  const [rakutenUrl, setRakutenUrl] = useState("");
+  const [rakutenItems, setRakutenItems] = useState<RakutenItem[]>([]);
+  const [rakutenLoading, setRakutenLoading] = useState(false);
   const [type, setType] = useState<WineType>("red");
   const [price, setPrice] = useState("");
   const [rating, setRating] = useState(0);
@@ -132,17 +136,7 @@ export default function NewWinePage() {
   const [candidates, setCandidates] = useState<any[]>([]);
   const [showCandidates, setShowCandidates] = useState(false);
 
-  // Region guide (supports both old string format and new object format)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [regionGuide, setRegionGuide] = useState<Record<string, any> | null>(null);
-  const [loadingGuide, setLoadingGuide] = useState(false);
-
-  // Tour search
-  const [tours, setTours] = useState<WineTour[]>([]);
-  const [tourTravelTips, setTourTravelTips] = useState("");
-  const [tourNearby, setTourNearby] = useState<string[]>([]);
-  const [searchingTours, setSearchingTours] = useState(false);
-  const [savedTours, setSavedTours] = useState<WineTour[]>([]);
+  // Region guide removed to reduce token consumption
 
   // Grape base data for overlay
   const [grapeBaseAromas, setGrapeBaseAromas] = useState<string[]>([]);
@@ -247,57 +241,19 @@ export default function NewWinePage() {
     }
   }, [normalizedGrapes.length, visionResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch region guide when region changes (with localStorage caching)
+  // Always update grape base palate overlay from grape master when grapes change
   useEffect(() => {
-    if (!country || !region) { setRegionGuide(null); return; }
-    const cacheKey = `region-guide:${country}:${region}`;
-    try {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        setRegionGuide(parsed);
-        return;
-      }
-    } catch { /* ignore parse errors */ }
-    setLoadingGuide(true);
-    fetch("/api/region-guide", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country, region, subRegion, village, grapeVarieties: normalizedGrapes }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data.error) {
-          setRegionGuide(data);
-          try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch { /* quota exceeded */ }
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingGuide(false));
-  }, [country, region]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Force refresh region guide (clear cache and re-fetch)
-  function handleRefreshGuide() {
-    if (!country || !region) return;
-    const cacheKey = `region-guide:${country}:${region}`;
-    try { localStorage.removeItem(cacheKey); } catch { /* ignore */ }
-    setRegionGuide(null);
-    setLoadingGuide(true);
-    fetch("/api/region-guide", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country, region, subRegion, village, grapeVarieties: normalizedGrapes }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data.error) {
-          setRegionGuide(data);
-          try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch { /* quota exceeded */ }
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingGuide(false));
-  }
+    if (normalizedGrapes.length > 0) {
+      const isRed = type === "red";
+      const basePalate = getDefaultPalate(normalizedGrapes, isRed);
+      setGrapeBasePalate(basePalate);
+      const baseAromas = getDefaultAromas(normalizedGrapes);
+      setGrapeBaseAromas(baseAromas);
+    } else {
+      setGrapeBasePalate(null);
+      setGrapeBaseAromas([]);
+    }
+  }, [normalizedGrapes.join(","), type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // === Scan label with Claude Vision ===
   async function handleScan(e: React.ChangeEvent<HTMLInputElement>) {
@@ -397,9 +353,42 @@ export default function NewWinePage() {
     const conf = candidate.confidence === "high" ? "高" : candidate.confidence === "medium" ? "中" : "低";
     setScanMessage(`検索完了（確度: ${conf}）${candidate.description ? ` - ${candidate.description}` : ""}`);
 
+    // Search Rakuten for affiliate links
+    triggerRakutenSearch({
+      producer: candidate.producer,
+      name: candidate.name,
+      vintage: candidate.vintage,
+      country: candidate.country,
+    });
+
     // Close the picker
     setShowCandidates(false);
     setCandidates([]);
+  }
+
+  // === Rakuten search helper ===
+  async function triggerRakutenSearch(params: {
+    producer?: string;
+    name?: string;
+    vintage?: string | number | null;
+    country?: string;
+  }) {
+    const keyword = buildRakutenKeyword(params);
+    if (!keyword) return;
+    setRakutenLoading(true);
+    setRakutenItems([]);
+    try {
+      const result = await searchRakutenWines(keyword);
+      setRakutenItems(result.items);
+      // Auto-select first item's affiliate URL
+      if (result.items.length > 0) {
+        setRakutenUrl(result.items[0].itemUrl);
+      }
+    } catch {
+      // silently fail - rakuten is supplementary
+    } finally {
+      setRakutenLoading(false);
+    }
   }
 
   // === Text search with Claude API ===
@@ -488,6 +477,11 @@ export default function NewWinePage() {
 
         const conf = data.confidence === "high" ? "高" : data.confidence === "medium" ? "中" : "低";
         setScanMessage(`検索完了（確度: ${conf}）${data.description ? ` - ${data.description}` : ""}`);
+
+        // Search Rakuten for affiliate links (legacy format)
+        triggerRakutenSearch({
+          producer, name, vintage, country: selectedCountry?.name || country,
+        });
       }
     } catch {
       setScanMessage("検索に失敗しました");
@@ -523,6 +517,15 @@ export default function NewWinePage() {
     if (l.type) setType(l.type);
 
     if (k.producerUrl) setProducerUrl(k.producerUrl);
+
+    // Search Rakuten for affiliate links from scanned label
+    triggerRakutenSearch({
+      producer: l.producer,
+      name: l.name,
+      vintage: l.vintage,
+      country: l.country,
+    });
+
     if (k.priceRange.min > 0) {
       const mid = Math.round((k.priceRange.min + k.priceRange.max) / 2);
       setPrice(String(mid));
@@ -567,49 +570,6 @@ export default function NewWinePage() {
     setFinish(dp.finish);
   }
 
-  // === Tour Search ===
-  async function handleTourSearch() {
-    setSearchingTours(true);
-    setTours([]);
-    setTourTravelTips("");
-    setTourNearby([]);
-    try {
-      const res = await fetch("/api/wine-tours", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          producer,
-          wineName: name,
-          country: selectedCountry?.name || country,
-          region,
-          subRegion,
-          village,
-          grapeVarieties: normalizedGrapes,
-        }),
-      });
-      if (!res.ok) {
-        setSearchingTours(false);
-        return;
-      }
-      const data = await res.json();
-      if (data.tours) setTours(data.tours);
-      if (data.travelTips) setTourTravelTips(data.travelTips);
-      if (data.nearbyAttractions) setTourNearby(data.nearbyAttractions);
-    } catch {
-      // ignore
-    } finally {
-      setSearchingTours(false);
-    }
-  }
-
-  function toggleSaveTour(tour: WineTour) {
-    setSavedTours((prev) => {
-      const exists = prev.some((t) => t.title === tour.title);
-      if (exists) return prev.filter((t) => t.title !== tour.title);
-      return [...prev, tour];
-    });
-  }
-
   async function handleSubmit() {
     const wine: WineLog = {
       id: uuidv4(),
@@ -630,6 +590,7 @@ export default function NewWinePage() {
       tasteType,
       certifications: certifications.split(",").map((c) => c.trim()).filter(Boolean),
       producerUrl,
+      rakutenUrl,
       type,
       price: price ? parseFloat(price) : null,
       aromas: selectedAromas,
@@ -644,7 +605,6 @@ export default function NewWinePage() {
       notes,
       date: new Date().toISOString().split("T")[0],
       createdAt: new Date().toISOString(),
-      tours: savedTours.length > 0 ? savedTours : undefined,
     };
 
     const result = addWine(wine);
@@ -656,6 +616,18 @@ export default function NewWinePage() {
 
     setLogResult(result);
   }
+
+  // When result screen appears, always ensure Rakuten search runs
+  useEffect(() => {
+    if (logResult && rakutenItems.length === 0 && !rakutenLoading) {
+      triggerRakutenSearch({
+        producer: logResult.wine.producer,
+        name: logResult.wine.name,
+        vintage: logResult.wine.vintage ? String(logResult.wine.vintage) : "",
+        country: logResult.wine.country,
+      });
+    }
+  }, [logResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showTannin = type === "red";
   const radarData = [
@@ -783,6 +755,65 @@ export default function NewWinePage() {
             </div>
           )}
 
+          {/* Rakuten Affiliate Products - always shown on result screen */}
+          <div className="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-[#d8c1c2]/20">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-px flex-1 bg-[#d8c1c2]/30" />
+              <span className="text-[10px] font-label tracking-[0.2em] uppercase text-[#bf0000]">
+                楽天市場で購入
+              </span>
+              <div className="h-px flex-1 bg-[#d8c1c2]/30" />
+            </div>
+            {(rakutenLoading || rakutenItems.length === 0) ? (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <div className="w-4 h-4 border-2 border-[#bf0000]/30 border-t-[#bf0000] rounded-full animate-spin" />
+                <span className="text-xs text-[#534343]/60">商品を検索中...</span>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {rakutenItems.map((item, idx) => (
+                  <a
+                    key={idx}
+                    href={item.itemUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-xl border border-[#d8c1c2]/30 bg-white transition-all hover:shadow-md hover:border-[#bf0000]/40 active:scale-[0.98]"
+                  >
+                    {item.imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.imageUrl}
+                        alt={item.itemName}
+                        className="w-14 h-14 object-contain rounded-lg bg-white flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[#1c1c18] line-clamp-2 leading-tight">
+                        {item.itemName}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm font-bold text-[#bf0000]">
+                          ¥{item.itemPrice.toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-[#534343]/50">{item.shopName}</span>
+                      </div>
+                      {item.reviewAverage > 0 && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="material-symbols-outlined text-[12px] text-[#c9a84c]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                          <span className="text-[10px] text-[#534343]/60">{item.reviewAverage.toFixed(1)} ({item.reviewCount})</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="material-symbols-outlined text-[#bf0000] text-lg flex-shrink-0">open_in_new</span>
+                  </a>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-[#534343]/50 text-center mt-3">
+              いつでも記録ページから購入できます
+            </p>
+          </div>
+
           {/* Home Button */}
           <button
             onClick={() => router.push("/")}
@@ -811,15 +842,15 @@ export default function NewWinePage() {
 
       {/* ===== HEADER ===== */}
       <header className="px-5 pt-5 pb-2 flex items-center justify-between">
-        <button onClick={() => router.back()} className="text-[#534343] p-1">
-          <span className="material-symbols-outlined text-xl">arrow_back</span>
-        </button>
-        <div className="flex items-center gap-1.5 text-[#1c1c18]">
-          <span className="material-symbols-outlined text-lg text-[#c9a84c]">edit_note</span>
-          <span className="font-headline text-base tracking-wide">ワインジャーナル</span>
-        </div>
-        <div className="w-8" /> {/* Spacer for centering */}
-      </header>
+          <button onClick={() => router.back()} className="text-[#534343] p-1">
+            <span className="material-symbols-outlined text-xl">arrow_back</span>
+          </button>
+          <div className="flex items-center gap-1.5 text-[#1c1c18]">
+            <span className="material-symbols-outlined text-lg text-[#c9a84c]">edit_note</span>
+            <span className="font-headline text-base tracking-wide">ワインジャーナル</span>
+          </div>
+          <div className="w-8" /> {/* Spacer for centering */}
+        </header>
 
       {/* ===== HERO TITLE ===== */}
       <div className="text-center px-5 pt-6 pb-5">
@@ -1548,232 +1579,6 @@ export default function NewWinePage() {
 
         </div>
       </div>
-
-      {/* ===== REGION GUIDE (outside ledger card) ===== */}
-      {(regionGuide || loadingGuide) && (
-        <div className="mx-4 mb-6">
-          {/* Header with refresh button */}
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="font-headline text-sm text-[#1c1c18] flex items-center gap-2">
-              <span className="material-symbols-outlined text-base text-[#c9a84c]">pin_drop</span>
-              {regionGuide?.regionName || region}の産地ガイド
-            </h3>
-            <button
-              onClick={handleRefreshGuide}
-              disabled={loadingGuide}
-              className="flex items-center gap-1 text-[10px] text-[#534343]/50 hover:text-[#561922] disabled:opacity-50 transition-colors"
-            >
-              <span className={`material-symbols-outlined text-xs ${loadingGuide ? "animate-spin" : ""}`}>refresh</span>
-              AIで再検索
-            </button>
-          </div>
-
-          {loadingGuide ? (
-            <div className="flex items-center justify-center gap-2 text-xs text-[#755b00] py-12 bg-[#c9a84c]/5 border border-[#c9a84c]/15 rounded-2xl">
-              <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-              産地情報を取得中...
-            </div>
-          ) : regionGuide && (
-            <div className="space-y-3">
-              {/* Hero image */}
-              <div className="w-full h-44 rounded-2xl overflow-hidden relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={getRegionImage(region)}
-                  alt={`${region} wine region`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-3 left-4 text-white">
-                  <div className="text-lg font-headline">{regionGuide.regionName || region}</div>
-                  <div className="text-xs text-white/80">{region}</div>
-                </div>
-              </div>
-
-              {/* Guide section cards */}
-              {[
-                { key: "terroir", icon: "public", title: "テロワール" },
-                { key: "climate", icon: "wb_sunny", title: "気候" },
-                { key: "history", icon: "history_edu", title: "歴史" },
-                { key: "keyStyles", icon: "wine_bar", title: "主要スタイル" },
-                { key: "topProducers", icon: "emoji_events", title: "著名な生産者" },
-                { key: "foodPairing", icon: "restaurant", title: "フードペアリング" },
-                { key: "visitTips", icon: "flight", title: "旅行ガイド" },
-                { key: "regulations", icon: "gavel", title: "法規・規定" },
-                { key: "sommNotes", icon: "school", title: "ソムリエ試験ポイント" },
-                { key: "vintageGuide", icon: "calendar_month", title: "ヴィンテージガイド" },
-                { key: "funFact", icon: "lightbulb", title: "豆知識" },
-              ].map(({ key, icon, title }) => {
-                const text = getGuideText(regionGuide[key]);
-                if (!text) return null;
-                return (
-                  <div key={key} className="bg-white rounded-2xl border border-[#d8c1c2]/15 shadow-sm overflow-hidden">
-                    <div className="flex">
-                      {/* Section image */}
-                      <div className="w-24 min-h-[80px] flex-shrink-0 relative">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={getSectionImage(key, region)}
-                          alt={title}
-                          className="w-full h-full object-cover absolute inset-0"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        />
-                      </div>
-                      {/* Text content */}
-                      <div className="flex-1 p-3.5">
-                        <div className="text-xs text-[#1c1c18] mb-1 flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-sm text-[#c9a84c]">{icon}</span>
-                          <span className="font-medium">{title}</span>
-                        </div>
-                        <p className="text-xs text-[#534343] leading-relaxed">{text}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Copyright notice */}
-              <p className="text-[10px] text-[#534343]/40 text-center pt-1">
-                Photos: Unsplash / CC0
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ===== TOUR SEARCH SECTION ===== */}
-      {(country || region) && (
-        <div className="mx-4 mb-6">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="font-headline text-sm text-[#1c1c18] flex items-center gap-2">
-              <span className="material-symbols-outlined text-base text-[#c9a84c]">flight</span>
-              関連する旅行プラン
-            </h3>
-            <button
-              onClick={handleTourSearch}
-              disabled={searchingTours}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[10px] font-medium text-white bg-[#561922] rounded-full hover:bg-[#722f37] transition-colors disabled:opacity-50"
-            >
-              {searchingTours ? (
-                <span className="material-symbols-outlined text-xs animate-spin">progress_activity</span>
-              ) : (
-                <span className="material-symbols-outlined text-xs">search</span>
-              )}
-              {searchingTours ? "検索中..." : "ツアーを検索"}
-            </button>
-          </div>
-
-          {tours.length > 0 && (
-            <div className="space-y-3">
-              {/* Travel tips */}
-              {tourTravelTips && (
-                <div className="bg-[#c9a84c]/8 border border-[#c9a84c]/20 rounded-2xl p-4">
-                  <p className="text-xs text-[#755b00] leading-relaxed">
-                    <span className="material-symbols-outlined text-xs align-middle mr-1">lightbulb</span>
-                    {tourTravelTips}
-                  </p>
-                </div>
-              )}
-
-              {/* Tour cards */}
-              {tours.map((tour, i) => {
-                const isSaved = savedTours.some((t) => t.title === tour.title);
-                const typeIcon: Record<string, string> = {
-                  winery_visit: "castle",
-                  wine_tour: "directions_bus",
-                  food_pairing: "restaurant",
-                  harvest_experience: "agriculture",
-                  city_tour: "location_city",
-                  accommodation: "hotel",
-                };
-                return (
-                  <div
-                    key={i}
-                    className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${
-                      isSaved ? "border-[#561922]/40 ring-1 ring-[#561922]/10" : "border-[#d8c1c2]/15"
-                    }`}
-                  >
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-[#1c1c18] text-sm flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-base text-[#c9a84c]">
-                              {typeIcon[tour.type] || "map"}
-                            </span>
-                            {tour.title}
-                          </h4>
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            <span className="text-[10px] text-[#534343] bg-[#f6f3ed] px-2 py-0.5 rounded-full">{tour.location}</span>
-                            <span className="text-[10px] text-[#534343] bg-[#f6f3ed] px-2 py-0.5 rounded-full">{tour.duration}</span>
-                            {tour.priceRange && (
-                              <span className="text-[10px] text-[#534343] bg-[#f6f3ed] px-2 py-0.5 rounded-full">{tour.priceRange}</span>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => toggleSaveTour(tour)}
-                          className={`flex-shrink-0 px-3 py-1.5 text-[10px] rounded-full font-medium transition-colors ${
-                            isSaved
-                              ? "bg-[#561922] text-white"
-                              : "bg-[#f6f3ed] text-[#534343] hover:bg-[#561922]/10 hover:text-[#561922]"
-                          }`}
-                        >
-                          {isSaved ? (
-                            <><span className="material-symbols-outlined text-[10px] align-middle mr-0.5">check</span> 保存済み</>
-                          ) : "保存"}
-                        </button>
-                      </div>
-                      <p className="text-xs text-[#534343] leading-relaxed mb-2">{tour.description}</p>
-                      {tour.highlights && tour.highlights.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {tour.highlights.map((h, j) => (
-                            <span key={j} className="text-[10px] px-2 py-0.5 bg-[#c9a84c]/10 text-[#755b00] rounded-full">{h}</span>
-                          ))}
-                        </div>
-                      )}
-                      {tour.bestSeason && (
-                        <p className="text-[10px] text-[#534343]/60">
-                          <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">calendar_month</span>
-                          ベストシーズン: {tour.bestSeason}
-                        </p>
-                      )}
-                      {tour.bookingTip && (
-                        <p className="text-[10px] text-[#755b00] mt-1">
-                          <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">lightbulb</span>
-                          {tour.bookingTip}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Nearby attractions */}
-              {tourNearby.length > 0 && (
-                <div className="bg-[#f6f3ed] rounded-2xl p-4">
-                  <h4 className="text-xs font-medium text-[#1c1c18] mb-2 flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm text-[#c9a84c]">account_balance</span>
-                    周辺の観光名所
-                  </h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {tourNearby.map((a, i) => (
-                      <span key={i} className="text-[10px] px-2.5 py-1 bg-white text-[#534343] rounded-full border border-[#d8c1c2]/20">{a}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {savedTours.length > 0 && (
-                <p className="text-[10px] text-[#561922] text-center">
-                  <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">check_circle</span>
-                  {savedTours.length}件のツアーが保存されます
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ===== SUBMIT BUTTON ===== */}
       <div className="px-5 pb-28">
