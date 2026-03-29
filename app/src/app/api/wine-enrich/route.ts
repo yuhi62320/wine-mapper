@@ -19,12 +19,166 @@ function getAnthropicKey(): string | undefined {
   return undefined;
 }
 
+const JSON_SCHEMA = `{
+  "priceRange": { "min": <JPY number>, "max": <JPY number> },
+  "aromas": ["<select 5-10 from the predefined aroma list, in Japanese>"],
+  "palate": {
+    "sweetness": <1-5>,
+    "acidity": <1-5>,
+    "tannin": <1-5 or null if white/sparkling>,
+    "body": <1-5>,
+    "finish": <1-5>
+  },
+  "description": "<2-3 sentence Japanese description>",
+  "reviewSource": "<source name or empty string>",
+  "confidence": "high" | "medium" | "low"
+}`;
+
+function buildWineContext(params: Record<string, string>) {
+  return `Wine: ${[params.producer, params.name, params.vintage].filter(Boolean).join(" ")}
+Country: ${params.country || "unknown"}
+Region: ${params.region || "unknown"}
+Type: ${params.type || "red"}
+Grapes: ${params.grapeVarieties || "unknown"}`;
+}
+
+/**
+ * Try web search enrichment first, then fallback to knowledge-only.
+ */
+async function enrichWithWebSearch(
+  apiKey: string,
+  wineContext: string
+): Promise<Record<string, unknown> | null> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1500,
+      tools: [
+        {
+          type: "web_search_20250305",
+          name: "web_search",
+          max_uses: 2,
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `You are an expert sommelier. Search the web for real tasting notes, professional reviews, and pricing for this wine:
+
+${wineContext}
+
+Search Vivino, Wine-Searcher, Winalist, JancisRobinson, or major wine review sites.
+
+IMPORTANT - For aromas, select ONLY from this predefined list:
+${AROMA_LIST_FOR_PROMPT}
+
+You MUST return a valid JSON object even if web search finds limited information. Use your wine expertise to fill gaps.
+
+Return ONLY a valid JSON object (no markdown, no backticks, no explanation before or after):
+${JSON_SCHEMA}
+
+RULES:
+- You MUST always return the JSON, even if no reviews are found. Use "confidence": "low" in that case.
+- priceRange: Japanese retail prices in JPY.
+- aromas: ONLY items from the predefined list.
+- palate: Based on reviews if found, otherwise your expert estimation.
+- description: In Japanese. If no reviews found, describe expected character based on grape/region.
+- reviewSource: Cite source if found, otherwise empty string "".`,
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    console.error("[wine-enrich] Web search API error:", res.status);
+    return null;
+  }
+
+  const apiResult = await res.json();
+
+  let fullText = "";
+  for (const block of apiResult.content || []) {
+    if (block.type === "text") {
+      fullText += block.text;
+    }
+  }
+
+  const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error("[wine-enrich] Web search: no JSON in response, will fallback");
+    return null;
+  }
+
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    console.error("[wine-enrich] Web search: JSON parse error, will fallback");
+    return null;
+  }
+}
+
+/**
+ * Fallback: knowledge-based enrichment without web search.
+ */
+async function enrichFromKnowledge(
+  apiKey: string,
+  wineContext: string
+): Promise<Record<string, unknown> | null> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 800,
+      messages: [
+        {
+          role: "user",
+          content: `You are an expert sommelier. Based on your wine knowledge, estimate tasting profile for:
+
+${wineContext}
+
+For aromas, select ONLY from this predefined list:
+${AROMA_LIST_FOR_PROMPT}
+
+Return ONLY a valid JSON object (no markdown, no backticks):
+${JSON_SCHEMA}
+
+Set confidence to "low" and reviewSource to "". Base your estimates on the grape variety, region, and wine style.
+Aromas MUST come from the predefined list only. Description in Japanese.`,
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) return null;
+
+  const apiResult = await res.json();
+  const text = apiResult.content?.[0]?.type === "text" ? apiResult.content[0].text : "";
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return null;
+
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * POST /api/wine-enrich
  *
  * Uses Claude + web_search to fetch real-world tasting notes,
- * reviews, and pricing for a specific wine. Called on user demand
- * ("世界のレビューを参考にする" button).
+ * with fallback to knowledge-based estimation.
  */
 export async function POST(req: NextRequest) {
   const apiKey = getAnthropicKey();
@@ -46,101 +200,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const wineContext = buildWineContext({ producer, name, vintage, country, region, type, grapeVarieties });
+
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 1500,
-        tools: [
-          {
-            type: "web_search_20250305",
-            name: "web_search",
-            max_uses: 2,
-          },
-        ],
-        messages: [
-          {
-            role: "user",
-            content: `You are an expert sommelier. Search the web for real tasting notes, professional reviews, and pricing for this wine:
+    // Step 1: Try web search enrichment
+    let data = await enrichWithWebSearch(apiKey, wineContext);
 
-Wine: ${wineName}
-Country: ${country || "unknown"}
-Region: ${region || "unknown"}
-Type: ${type || "red"}
-Grapes: ${grapeVarieties || "unknown"}
-
-Search Vivino, Wine-Searcher, Winalist, JancisRobinson, or major wine review sites to find REAL data about this specific wine.
-
-IMPORTANT - For aromas, select ONLY from this predefined list:
-${AROMA_LIST_FOR_PROMPT}
-
-Return ONLY a valid JSON object (no markdown, no backticks):
-{
-  "priceRange": { "min": <JPY number>, "max": <JPY number> },
-  "aromas": ["<select 5-10 from the predefined aroma list, in Japanese>"],
-  "palate": {
-    "sweetness": <1-5>,
-    "acidity": <1-5>,
-    "tannin": <1-5 or null if white/sparkling>,
-    "body": <1-5>,
-    "finish": <1-5>
-  },
-  "description": "<2-3 sentence Japanese description based on real reviews found>",
-  "reviewSource": "<name of the review source found, e.g. 'Vivino 4.2/5', 'Wine-Searcher', etc.>",
-  "confidence": "high" | "medium" | "low"
-}
-
-RULES:
-- priceRange: Japanese retail prices in JPY from wine-searcher.com or rakuten.
-- aromas: ONLY items from the predefined list. Do NOT invent new descriptors.
-- palate: Based on actual reviews found, not generic assumptions.
-- description: Summarize real reviewer impressions in Japanese.
-- reviewSource: Cite where you found the data.
-- confidence: "high" if specific reviews found, "medium" if partial, "low" if mostly inferred.`,
-          },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const errBody = await res.text();
-      console.error("[wine-enrich] API error:", res.status, errBody);
-      return NextResponse.json(
-        { error: `API error: ${res.status}` },
-        { status: 502 }
-      );
+    // Step 2: If web search failed, fallback to knowledge-based
+    if (!data) {
+      console.log("[wine-enrich] Falling back to knowledge-based enrichment");
+      data = await enrichFromKnowledge(apiKey, wineContext);
     }
 
-    const apiResult = await res.json();
-
-    // Extract text from all content blocks
-    let fullText = "";
-    for (const block of apiResult.content || []) {
-      if (block.type === "text") {
-        fullText += block.text;
-      }
-    }
-
-    const jsonMatch = fullText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("[wine-enrich] Failed to parse:", fullText);
+    // If both failed, return error
+    if (!data) {
       return NextResponse.json(
-        { error: "Failed to parse enrichment response" },
+        { error: "Could not generate enrichment data" },
         { status: 500 }
       );
     }
 
-    const data = JSON.parse(jsonMatch[0]);
-
     // Clean up cite tags from web search results
-    if (data.description) {
-      data.description = data.description.replace(/<\/?cite[^>]*>/g, "");
+    if (typeof data.description === "string") {
+      data.description = (data.description as string).replace(/<\/?cite[^>]*>/g, "");
     }
 
     return NextResponse.json(data);
