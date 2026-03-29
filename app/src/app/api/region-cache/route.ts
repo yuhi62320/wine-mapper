@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
       vintageGuide: extractText(gd.vintageGuide),
       bestSeason: extractText(gd.bestSeason),
       funFact: extractText(gd.funFact),
+      tourData: cached.tour_data ?? null,
     };
 
     return NextResponse.json(content);

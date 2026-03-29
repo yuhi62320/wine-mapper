@@ -68,10 +68,13 @@ export default function ProfilePage() {
 
   if (loading || !user || !profile) return null;
 
+  // Rank is now XP-driven (not badge-point-driven)
+  const xp = profile.xp;
+  const rank = getCurrentRank(xp);
+  const nextRank = getNextRank(xp);
+  const progress = getRankProgress(xp);
+  // Badge points still used for badge display
   const totalPoints = getTotalBadgePoints(profile, wines);
-  const rank = getCurrentRank(totalPoints);
-  const nextRank = getNextRank(totalPoints);
-  const progress = getRankProgress(totalPoints);
   const profileStats = getProfileStats(profile, wines);
 
   // Determine the rank tier number (1-based index into RANKS)
@@ -112,29 +115,29 @@ export default function ProfilePage() {
           <p className="text-white/50 text-xs font-body mt-0.5">{rank.name}</p>
         </div>
 
-        {/* Badge point total */}
+        {/* XP total */}
         <div className="flex items-center justify-center gap-2 mb-4">
           <span
             className="material-symbols-outlined text-secondary text-lg"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
-            military_tech
+            bolt
           </span>
           <span className="text-white font-headline text-lg font-semibold">
-            {totalPoints}
+            {xp}
           </span>
-          <span className="text-white/50 text-sm font-body">ポイント</span>
+          <span className="text-white/50 text-sm font-body">XP</span>
         </div>
 
         {/* XP bar */}
         <div className="mx-2 mb-4">
           <div className="flex justify-between text-xs mb-1.5">
             <span className="text-white/70 font-body">
-              {totalPoints} pt
+              {xp} XP
             </span>
             {nextRank && (
               <span className="text-white/40 font-body">
-                {nextRank.nameJa}まで {nextRank.minXp} pt
+                {nextRank.nameJa}まで {nextRank.minXp} XP
               </span>
             )}
           </div>
@@ -325,9 +328,9 @@ export default function ProfilePage() {
 
           <div className="space-y-1">
             {RANKS.map((r, i) => {
-              const isCompleted = totalPoints >= r.minXp && r.name !== rank.name;
+              const isCompleted = xp >= r.minXp && r.name !== rank.name;
               const isCurrent = r.name === rank.name;
-              const isFuture = totalPoints < r.minXp;
+              const isFuture = xp < r.minXp;
 
               return (
                 <div key={r.name} className="relative flex items-center gap-4 py-2">
@@ -379,7 +382,7 @@ export default function ProfilePage() {
                       )}
                     </div>
                     <span className="text-[11px] text-on-surface-variant font-body">
-                      {r.minXp} pt
+                      {r.minXp} XP
                     </span>
                   </div>
                 </div>

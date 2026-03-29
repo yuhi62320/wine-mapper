@@ -5,6 +5,7 @@ import {
   buildRegionLookupKey,
   getCachedRegion,
   setCachedRegion,
+  updateCachedRegion,
 } from "@/lib/supabase-cache";
 
 function getAnthropicKey(): string | undefined {
@@ -21,6 +22,30 @@ function getAnthropicKey(): string | undefined {
     /* ignore */
   }
   return undefined;
+}
+
+const REQUIRED_GUIDE_FIELDS = [
+  "terroir", "climate", "history", "keyStyles", "topProducers",
+  "foodPairing", "visitTips", "regulations", "sommNotes", "funFact", "vintageGuide",
+];
+
+function hasGaps(cached: Record<string, unknown>): string[] {
+  const gaps: string[] = [];
+  const guide = cached.guide_data as Record<string, unknown> | null;
+  if (!guide) {
+    gaps.push("guideData");
+    return gaps;
+  }
+  for (const f of REQUIRED_GUIDE_FIELDS) {
+    const val = guide[f];
+    if (!val) {
+      gaps.push(f);
+    } else if (typeof val === "object" && val !== null && "text" in (val as Record<string, unknown>)) {
+      if (!(val as Record<string, unknown>).text) gaps.push(f);
+    }
+  }
+  if (!cached.tour_data) gaps.push("tourData");
+  return gaps;
 }
 
 export async function POST(req: NextRequest) {
@@ -46,7 +71,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Build cache lookup key from region hierarchy
   const lookupKey = buildRegionLookupKey({
     country: country ?? "",
     region: region ?? "",
@@ -54,18 +78,27 @@ export async function POST(req: NextRequest) {
     village,
   });
 
-  // Check for force refresh flag
   const forceRefresh = req.nextUrl.searchParams.get("force") === "true";
 
-  // Cache-first: return cached data if available
+  // Cache-first: check Supabase
+  let cached: Record<string, unknown> | null = null;
   if (!forceRefresh) {
     try {
-      const cached = await getCachedRegion(lookupKey);
-      if (cached) {
-        return NextResponse.json(cached.guide_data);
-      }
+      cached = await getCachedRegion(lookupKey) as Record<string, unknown> | null;
     } catch (err) {
       console.error("[region-guide] Cache read error:", err);
+    }
+
+    // If cached and complete, return immediately
+    if (cached) {
+      const gaps = hasGaps(cached);
+      if (gaps.length === 0) {
+        // Merge guide_data and tour_data at top level for client
+        const guide = cached.guide_data as Record<string, unknown>;
+        const tour = cached.tour_data as Record<string, unknown> | null;
+        return NextResponse.json({ ...guide, tourData: tour });
+      }
+      console.log(`[region-guide] Cache hit for "${location}" but has gaps:`, gaps);
     }
   }
 
@@ -83,12 +116,12 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 2500,
+        max_tokens: 3500,
         messages: [
           {
             role: "user",
             content: `あなたはソムリエであり、ワイン産地の旅行ガイドでもあります。
-以下のワイン産地について、ワイン愛好家・ソムリエ試験学習者・旅行愛好家が興味を持つ、詳細で具体的な情報を日本語で教えてください。
+以下のワイン産地について、ワイン愛好家が「行ってみたい！」と思うような、詳細で魅力的な情報を日本語で教えてください。
 
 産地: ${location}
 ${grapeContext}
@@ -98,53 +131,76 @@ ${grapeContext}
 {
   "regionName": "<地域名（日本語）>",
   "heroImage": "<single English keyword phrase for hero landscape, e.g. 'Bordeaux vineyard sunset'>",
+  "description": "<この産地の魅力を伝える導入文。ワイン好きの心をつかむ表現で。5-6文>",
   "terroir": {
-    "text": "<テロワール解説: 気候・土壌・標高・地形の特徴。なぜこの地で良いワインが生まれるのか。具体的な土壌成分や標高数値を含めて。4-5文>",
+    "text": "<テロワール解説: 気候・土壌・標高・地形。具体的数値と「だからこのワインが生まれる」理由を。5-6文>",
     "imageKeyword": "<e.g. 'limestone soil vineyard'>"
   },
   "climate": {
-    "text": "<気候の詳細: 大陸性/海洋性/地中海性の区分、年間降水量、日照時間、気温差、ヴィンテージへの影響。具体的な数値を含めて。4-5文>",
+    "text": "<気候の詳細: 大陸性/海洋性/地中海性、降水量、日照時間、気温差。4-5文>",
     "imageKeyword": "<e.g. 'vineyard morning mist'>"
   },
   "history": {
-    "text": "<歴史: この産地のワイン造りの歴史的背景。ローマ時代、修道院、近代化、重要な出来事と年号を含めて。4-5文>",
+    "text": "<歴史: ワイン造りの歴史的背景。ローマ時代からの年表的要素と、ドラマティックなエピソード。5-6文>",
     "imageKeyword": "<e.g. 'medieval monastery winery'>"
   },
   "keyStyles": {
-    "text": "<主要スタイル: この地域で最も有名なワインのスタイル、使用品種、特徴的な醸造法。具体的なワイン名を含めて。4-5文>",
+    "text": "<主要スタイル: 最も有名なワインスタイル、品種、醸造法。具体的ワイン名を含めて。4-5文>",
     "imageKeyword": "<e.g. 'red wine barrel cellar'>"
   },
   "topProducers": {
-    "text": "<著名な生産者5-10名とその特徴。各生産者の代表的なワインやスタイルの違いを含めて。4-5文>",
+    "text": "<著名な生産者5-10名とその特徴。代表ワイン、スタイル、価格帯の違いを含めて。5-6文>",
     "imageKeyword": "<e.g. 'famous winery estate'>"
   },
   "foodPairing": {
-    "text": "<地元の料理とのペアリング: 郷土料理との具体的な組み合わせ、なぜ合うのかの理由も含めて。4-5文>",
+    "text": "<地元の料理とのペアリング: 郷土料理との具体的な組み合わせとその理由。地元レストランの情報も。5-6文>",
     "imageKeyword": "<e.g. 'french cuisine wine pairing'>"
   },
   "visitTips": {
-    "text": "<旅行情報: ワイナリー訪問のベストシーズン、予約の要否、見どころ、周辺の観光地、アクセス方法。4-5文>",
+    "text": "<旅行情報: ベストシーズン、アクセス方法、予約の要否、モデルコース、宿泊エリア。ワイン旅行者目線で具体的に。5-6文>",
     "imageKeyword": "<e.g. 'wine tourism chateau'>"
   },
   "regulations": {
-    "text": "<AOC/DOCG規定、許可品種、最低熟成期間、収量制限、品質階層など法規の詳細。3-4文>",
+    "text": "<AOC/DOCG規定、許可品種、熟成期間、品質階層の詳細。3-4文>",
     "imageKeyword": "<e.g. 'wine label appellation'>"
   },
   "sommNotes": {
-    "text": "<ソムリエ試験ポイント: この産地で押さえるべき格付け、主要AOC/DOCG、覚えるべき品種や法規、試験頻出のトピック。4-5文>",
+    "text": "<ソムリエ試験ポイント: 格付け、主要AOC/DOCG、覚えるべき品種や法規。4-5文>",
     "imageKeyword": "<e.g. 'sommelier wine tasting'>"
   },
   "funFact": {
-    "text": "<豆知識: ソムリエ試験に出そうなトリビアや、話のネタになる面白い事実。歴史的エピソードや数字を含めて。3-4文>",
+    "text": "<豆知識: 意外な事実やトリビア。数字やエピソードを含めて。3-4文>",
     "imageKeyword": "<e.g. 'ancient wine cellar'>"
   },
   "vintageGuide": {
-    "text": "<近年の優良ヴィンテージとその特徴。過去20年程度のグレートヴィンテージと、各年の気候条件やワインの特徴。3-4文>",
+    "text": "<近年の優良ヴィンテージと特徴。過去20年のグレートヴィンテージ。3-4文>",
     "imageKeyword": "<e.g. 'wine vintage bottles'>"
+  },
+  "tourData": {
+    "tours": [
+      {
+        "title": "<ツアー/体験名>",
+        "description": "<内容詳細。2-3文>",
+        "type": "<'winery_visit' | 'wine_tour' | 'food_pairing' | 'harvest_experience' | 'city_tour' | 'accommodation'>",
+        "location": "<具体的な場所>",
+        "duration": "<所要時間>",
+        "bestSeason": "<おすすめ時期>",
+        "priceRange": "<価格帯の目安>",
+        "highlights": ["<見どころ1>", "<見どころ2>"],
+        "bookingTip": "<予約のコツ>"
+      }
+    ],
+    "travelTips": "<旅行総合アドバイス。アクセス、ベストシーズン、マナー、周遊ルート。4-5文>",
+    "nearbyAttractions": ["<周辺観光名所1>", "<周辺観光名所2>", "<周辺観光名所3>"],
+    "winalistSearchQuery": "<Winalist.comでの検索キーワード（英語）>",
+    "airbnbSearchQuery": "<Airbnb体験での検索キーワード（英語）>"
   }
 }
 
-具体的で実用的な情報を。一般的すぎる記述は避けて。数字、固有名詞、具体的なワイン名を積極的に含めてください。`,
+重要：
+- 3-5件のツアー/体験を含めてください（多様なタイプで）
+- ユーザーが「行ってみたい！」と思うような、具体的で魅力的な情報を
+- 数字、固有名詞、具体的なワイン名を積極的に含めてください`,
           },
         ],
       }),
@@ -153,6 +209,10 @@ ${grapeContext}
     if (!res.ok) {
       const errBody = await res.text();
       console.error("Region guide API error:", res.status, errBody);
+      if (cached) {
+        const guide = cached.guide_data as Record<string, unknown>;
+        return NextResponse.json({ ...guide, tourData: cached.tour_data });
+      }
       return NextResponse.json(
         { error: `API error: ${res.status}` },
         { status: 500 }
@@ -167,6 +227,10 @@ ${grapeContext}
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      if (cached) {
+        const guide = cached.guide_data as Record<string, unknown>;
+        return NextResponse.json({ ...guide, tourData: cached.tour_data });
+      }
       return NextResponse.json(
         { error: "Failed to parse response" },
         { status: 500 }
@@ -175,21 +239,51 @@ ${grapeContext}
 
     const data = JSON.parse(jsonMatch[0]);
 
-    // Fire-and-forget: save result to cache
+    // Separate tourData from guideData
+    const { tourData, ...guideData } = data;
+
+    if (cached) {
+      // Merge: keep existing non-empty fields, fill gaps
+      const existingGuide = (cached.guide_data as Record<string, unknown>) || {};
+      const existingTour = (cached.tour_data as Record<string, unknown>) || {};
+      const mergedGuide = { ...guideData };
+      for (const [k, v] of Object.entries(existingGuide)) {
+        if (v) mergedGuide[k] = v;
+      }
+      const mergedTour = { ...tourData, ...Object.fromEntries(
+        Object.entries(existingTour).filter(([, v]) => v)
+      )};
+
+      updateCachedRegion(lookupKey, {
+        guide_data: mergedGuide,
+        tour_data: mergedTour,
+      }).catch((err) =>
+        console.error("[region-guide] Cache update error:", err)
+      );
+
+      return NextResponse.json({ ...mergedGuide, tourData: mergedTour });
+    }
+
+    // New entry: cache full result
     setCachedRegion({
       lookupKey,
       country: country ?? "",
       region: region ?? "",
       subRegion,
       village,
-      guideData: data,
+      guideData,
+      tourData,
     }).catch((err) =>
       console.error("[region-guide] Cache write error:", err)
     );
 
-    return NextResponse.json(data);
+    return NextResponse.json({ ...guideData, tourData });
   } catch (err) {
     console.error("Region guide error:", err);
+    if (cached) {
+      const guide = cached.guide_data as Record<string, unknown>;
+      return NextResponse.json({ ...guide, tourData: cached.tour_data });
+    }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed" },
       { status: 500 }

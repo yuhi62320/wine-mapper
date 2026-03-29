@@ -52,6 +52,8 @@ export interface RegionCacheRow {
   sub_region?: string;
   village?: string;
   guide_data: Record<string, unknown>;
+  tour_data?: Record<string, unknown>;
+  hero_image_url?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -218,23 +220,47 @@ export async function setCachedRegion(data: {
   subRegion?: string;
   village?: string;
   guideData: Record<string, unknown>;
+  tourData?: Record<string, unknown>;
+  heroImageUrl?: string;
 }): Promise<void> {
   const supabase = createServiceClient();
+  const row: Record<string, unknown> = {
+    lookup_key: data.lookupKey,
+    country: data.country,
+    region: data.region,
+    sub_region: data.subRegion ?? null,
+    village: data.village ?? null,
+    guide_data: data.guideData,
+    updated_at: new Date().toISOString(),
+  };
+  if (data.tourData) row.tour_data = data.tourData;
+  if (data.heroImageUrl) row.hero_image_url = data.heroImageUrl;
+
   const { error } = await supabase.from("region_cache").upsert(
-    {
-      lookup_key: data.lookupKey,
-      country: data.country,
-      region: data.region,
-      sub_region: data.subRegion ?? null,
-      village: data.village ?? null,
-      guide_data: data.guideData,
-      updated_at: new Date().toISOString(),
-    },
+    row,
     { onConflict: "lookup_key" }
   );
 
   if (error) {
     console.error("[supabase-cache] setCachedRegion error:", error.message);
+  }
+}
+
+/**
+ * Partially update a region's fields (e.g. fill gaps like tour_data).
+ */
+export async function updateCachedRegion(
+  lookupKey: string,
+  fields: Partial<{ guide_data: Record<string, unknown>; tour_data: Record<string, unknown>; hero_image_url: string }>
+): Promise<void> {
+  const supabase = createServiceClient();
+  const { error } = await supabase
+    .from("region_cache")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("lookup_key", lookupKey);
+
+  if (error) {
+    console.error("[supabase-cache] updateCachedRegion error:", error.message);
   }
 }
 
@@ -254,6 +280,8 @@ export interface WineryCacheRow {
   website?: string;
   description?: string;
   guide_data?: Record<string, unknown>;
+  tour_data?: Record<string, unknown>;
+  image_url?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -302,28 +330,52 @@ export async function setCachedWinery(data: {
   website?: string;
   description?: string;
   guideData?: Record<string, unknown>;
+  tourData?: Record<string, unknown>;
+  imageUrl?: string;
 }): Promise<void> {
   const supabase = createServiceClient();
+  const row: Record<string, unknown> = {
+    lookup_key: data.lookupKey,
+    name: data.name,
+    name_ja: data.nameJa ?? null,
+    country: data.country,
+    region: data.region ?? null,
+    sub_region: data.subRegion ?? null,
+    village: data.village ?? null,
+    lat: data.lat ?? null,
+    lng: data.lng ?? null,
+    website: data.website ?? null,
+    description: data.description ?? null,
+    guide_data: data.guideData ?? null,
+    updated_at: new Date().toISOString(),
+  };
+  if (data.tourData) row.tour_data = data.tourData;
+  if (data.imageUrl) row.image_url = data.imageUrl;
+
   const { error } = await supabase.from("winery_cache").upsert(
-    {
-      lookup_key: data.lookupKey,
-      name: data.name,
-      name_ja: data.nameJa ?? null,
-      country: data.country,
-      region: data.region ?? null,
-      sub_region: data.subRegion ?? null,
-      village: data.village ?? null,
-      lat: data.lat ?? null,
-      lng: data.lng ?? null,
-      website: data.website ?? null,
-      description: data.description ?? null,
-      guide_data: data.guideData ?? null,
-      updated_at: new Date().toISOString(),
-    },
+    row,
     { onConflict: "lookup_key" }
   );
 
   if (error) {
     console.error("[supabase-cache] setCachedWinery error:", error.message);
+  }
+}
+
+/**
+ * Partially update a winery's fields (e.g. fill gaps like tour_data).
+ */
+export async function updateCachedWinery(
+  lookupKey: string,
+  fields: Partial<{ guide_data: Record<string, unknown>; tour_data: Record<string, unknown>; image_url: string; website: string; description: string }>
+): Promise<void> {
+  const supabase = createServiceClient();
+  const { error } = await supabase
+    .from("winery_cache")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("lookup_key", lookupKey);
+
+  if (error) {
+    console.error("[supabase-cache] updateCachedWinery error:", error.message);
   }
 }

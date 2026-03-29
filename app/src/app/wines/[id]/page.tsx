@@ -89,7 +89,8 @@ export default function WineDetailPage() {
         lng: data.lng ?? null,
         website: data.website || "",
         description: data.description || "",
-        guideData: data.guideData || null,
+        guideData: data.guideData || data.guide_data || null,
+        tourData: data.tourData || data.tour_data || null,
         wineIds: [wine.id],
         createdAt: new Date().toISOString(),
       };
@@ -648,6 +649,57 @@ export default function WineDetailPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ===== Rakuten Affiliate Products (Max 5) ===== */}
+        {wine.rakutenItems && wine.rakutenItems.length > 0 && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#d8c1c2]/40">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-px flex-1 bg-[#d8c1c2]/30" />
+              <span className="text-[10px] font-label tracking-[0.2em] uppercase text-[#bf0000]">
+                楽天市場で購入
+              </span>
+              <div className="h-px flex-1 bg-[#d8c1c2]/30" />
+            </div>
+            <div className="space-y-2">
+              {wine.rakutenItems.slice(0, 5).map((item, idx) => (
+                <a
+                  key={idx}
+                  href={item.itemUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-[#d8c1c2]/30 bg-white transition-all hover:shadow-md hover:border-[#bf0000]/40 active:scale-[0.98]"
+                >
+                  {item.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.imageUrl}
+                      alt={item.itemName}
+                      className="w-14 h-14 object-contain rounded-lg bg-white flex-shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-[#1c1c18] line-clamp-2 leading-tight">
+                      {item.itemName}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-sm font-bold text-[#bf0000]">
+                        ¥{item.itemPrice.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-[#534343]/50">{item.shopName}</span>
+                    </div>
+                    {item.reviewAverage > 0 && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="material-symbols-outlined text-[12px] text-[#c9a84c]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                        <span className="text-[10px] text-[#534343]/60">{item.reviewAverage.toFixed(1)} ({item.reviewCount})</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="material-symbols-outlined text-[#bf0000] text-lg flex-shrink-0">open_in_new</span>
+                </a>
+              ))}
+            </div>
           </div>
         )}
 
