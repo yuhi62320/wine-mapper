@@ -217,12 +217,23 @@ export default function SubRegionPage({ params }: Props) {
       {/* Guide Content */}
       {guideData && !loading && (
         <>
-          {/* Region Name from API */}
-          {guideData.regionName && (
+          {/* Description / Introduction */}
+          {(guideData.description || guideData.regionName) && (
             <section className="px-6 py-12">
-              <p className="font-headline text-xl text-on-surface leading-relaxed">
-                {guideData.regionName}
-              </p>
+              {guideData.description ? (
+                <p className="font-headline text-xl text-on-surface leading-relaxed">
+                  {typeof guideData.description === "object" &&
+                  "text" in (guideData.description as Record<string, unknown>)
+                    ? (guideData.description as GuideSection).text
+                    : typeof guideData.description === "string"
+                      ? guideData.description
+                      : guideData.regionName}
+                </p>
+              ) : guideData.regionName ? (
+                <p className="font-headline text-xl text-on-surface leading-relaxed">
+                  {guideData.regionName}
+                </p>
+              ) : null}
             </section>
           )}
 
