@@ -29,7 +29,7 @@ const REQUIRED_GUIDE_FIELDS = [
   "foodPairing", "visitTips", "regulations", "sommNotes", "funFact", "vintageGuide",
 ];
 
-function hasGaps(cached: Record<string, unknown>): string[] {
+function hasGuideGaps(cached: Record<string, unknown>): string[] {
   const gaps: string[] = [];
   const guide = cached.guide_data as Record<string, unknown> | null;
   if (!guide) {
@@ -44,19 +44,14 @@ function hasGaps(cached: Record<string, unknown>): string[] {
       if (!(val as Record<string, unknown>).text) gaps.push(f);
     }
   }
-  if (!cached.tour_data) gaps.push("tourData");
   return gaps;
 }
 
-export async function POST(req: NextRequest) {
-  const apiKey = getAnthropicKey();
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY not configured" },
-      { status: 500 }
-    );
-  }
+function needsTourData(cached: Record<string, unknown>): boolean {
+  return !cached.tour_data;
+}
 
+export async function POST(req: NextRequest) {
   const body = await req.json();
   const { country, region, subRegion, village, grapeVarieties } = body;
 
@@ -89,17 +84,31 @@ export async function POST(req: NextRequest) {
       console.error("[region-guide] Cache read error:", err);
     }
 
-    // If cached and complete, return immediately
+    // If cached and guide data is complete, return immediately
+    // (tour_data may be missing — that's OK, it's optional)
     if (cached) {
-      const gaps = hasGaps(cached);
-      if (gaps.length === 0) {
-        // Merge guide_data and tour_data at top level for client
+      const guideGaps = hasGuideGaps(cached);
+      if (guideGaps.length === 0) {
         const guide = cached.guide_data as Record<string, unknown>;
         const tour = cached.tour_data as Record<string, unknown> | null;
         return NextResponse.json({ ...guide, tourData: tour });
       }
-      console.log(`[region-guide] Cache hit for "${location}" but has gaps:`, gaps);
+      console.log(`[region-guide] Cache hit for "${location}" but has guide gaps:`, guideGaps);
     }
+  }
+
+  // API key required only when we need to generate/fill gaps
+  const apiKey = getAnthropicKey();
+  if (!apiKey) {
+    // No API key but we have partial cache — return what we have
+    if (cached) {
+      const guide = cached.guide_data as Record<string, unknown>;
+      return NextResponse.json({ ...guide, tourData: cached.tour_data });
+    }
+    return NextResponse.json(
+      { error: "ANTHROPIC_API_KEY not configured" },
+      { status: 500 }
+    );
   }
 
   const grapeContext = grapeVarieties?.length
