@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFileSync } from "fs";
-import { join } from "path";
 import {
   buildWineLookupKey,
   getCachedWine,
@@ -10,24 +8,8 @@ import {
 } from "@/lib/supabase-cache";
 import { AROMA_LIST_FOR_PROMPT } from "@/lib/aroma-list";
 
-function getAnthropicKey(): string | undefined {
-  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
-  try {
-    const envPath = join(process.cwd(), ".env.local");
-    const content = readFileSync(envPath, "utf-8");
-    const match = content.match(/^ANTHROPIC_API_KEY=(.+)$/m);
-    if (match) {
-      process.env.ANTHROPIC_API_KEY = match[1].trim();
-      return match[1].trim();
-    }
-  } catch {
-    /* ignore */
-  }
-  return undefined;
-}
-
 export async function POST(req: NextRequest) {
-  const apiKey = getAnthropicKey();
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
       { error: "ANTHROPIC_API_KEY not configured" },

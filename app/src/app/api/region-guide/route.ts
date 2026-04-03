@@ -1,28 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFileSync } from "fs";
-import { join } from "path";
 import {
   buildRegionLookupKey,
   getCachedRegion,
   setCachedRegion,
   updateCachedRegion,
 } from "@/lib/supabase-cache";
-
-function getAnthropicKey(): string | undefined {
-  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
-  try {
-    const envPath = join(process.cwd(), ".env.local");
-    const content = readFileSync(envPath, "utf-8");
-    const match = content.match(/^ANTHROPIC_API_KEY=(.+)$/m);
-    if (match) {
-      process.env.ANTHROPIC_API_KEY = match[1].trim();
-      return match[1].trim();
-    }
-  } catch {
-    /* ignore */
-  }
-  return undefined;
-}
 
 const REQUIRED_GUIDE_FIELDS = [
   "terroir", "climate", "history", "keyStyles", "topProducers",
@@ -98,7 +80,7 @@ export async function POST(req: NextRequest) {
   }
 
   // API key required only when we need to generate/fill gaps
-  const apiKey = getAnthropicKey();
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     // No API key but we have partial cache — return what we have
     if (cached) {
