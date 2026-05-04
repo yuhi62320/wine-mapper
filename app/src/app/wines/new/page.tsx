@@ -119,6 +119,7 @@ export default function NewWinePage() {
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
   const [priceHint, setPriceHint] = useState("");
   const [visionResult, setVisionResult] = useState<WineVisionResult | null>(null);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
@@ -907,12 +908,19 @@ export default function NewWinePage() {
   // === SINGLE-PAGE FORM (Wine Journal) ===
   return (
     <div className="min-h-screen bg-[#fcf9f3]">
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        onChange={handleScan}
+        className="hidden"
+      />
+      <input
+        ref={libraryInputRef}
+        type="file"
+        accept="image/*"
         onChange={handleScan}
         className="hidden"
       />
@@ -941,30 +949,42 @@ export default function NewWinePage() {
 
       {/* ===== QUICK SCAN / SEARCH BUTTONS ===== */}
       <div className="px-5 mb-5">
-        <div className="flex gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={scanning || textSearching}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-full border border-[#561922] text-[#561922] text-sm font-medium hover:bg-[#561922]/5 transition-colors disabled:opacity-50"
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-2xl border border-[#561922] text-[#561922] text-xs font-medium hover:bg-[#561922]/5 transition-colors disabled:opacity-50"
           >
             {scanning ? (
               <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
             ) : (
               <span className="material-symbols-outlined text-lg">photo_camera</span>
             )}
-            {scanning ? "分析中..." : "ラベル撮影"}
+            {scanning ? "分析中..." : "撮影"}
+          </button>
+          <button
+            onClick={() => libraryInputRef.current?.click()}
+            disabled={scanning || textSearching}
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-2xl border border-[#561922] text-[#561922] text-xs font-medium hover:bg-[#561922]/5 transition-colors disabled:opacity-50"
+          >
+            {scanning ? (
+              <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+            ) : (
+              <span className="material-symbols-outlined text-lg">photo_library</span>
+            )}
+            {scanning ? "分析中..." : "ライブラリ"}
           </button>
           <button
             onClick={handleTextSearch}
             disabled={textSearching || scanning || (!producer && !name)}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-full bg-[#561922] text-white text-sm font-medium hover:bg-[#722f37] transition-colors disabled:opacity-40"
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-2xl bg-[#561922] text-white text-xs font-medium hover:bg-[#722f37] transition-colors disabled:opacity-40"
           >
             {textSearching ? (
               <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
             ) : (
               <span className="material-symbols-outlined text-lg">search</span>
             )}
-            {textSearching ? "検索中..." : "検索して引用"}
+            {textSearching ? "検索中..." : "検索"}
           </button>
         </div>
 
