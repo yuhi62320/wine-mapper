@@ -201,22 +201,22 @@ export default function RegionPage({ params }: Props) {
   return (
     <div className="pb-24">
       {/* TopAppBar */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 h-16 bg-surface/90 backdrop-blur-xl">
-        <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 h-14 sm:h-16 bg-surface/90 backdrop-blur-xl">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <button
             onClick={() => router.back()}
-            className="hover:opacity-70 transition-opacity text-primary-container"
+            className="hover:opacity-70 transition-opacity text-primary-container shrink-0"
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <h1 className="font-headline font-bold text-xl tracking-tight text-primary-container">
-            {regionName}
+          <h1 className="font-headline font-bold text-base sm:text-xl tracking-tight text-primary-container truncate">
+            {wineRegion.nameJa}
           </h1>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative h-[400px] w-full overflow-hidden bg-gradient-to-b from-primary-container to-primary flex items-end">
+      <section className="relative h-[280px] sm:h-[400px] w-full overflow-hidden bg-gradient-to-b from-primary-container to-primary flex items-end">
         {content?.heroImage && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -225,21 +225,20 @@ export default function RegionPage({ params }: Props) {
               className="absolute inset-0 w-full h-full object-cover opacity-60"
               src={content.heroImage}
               onError={(e) => {
-                // Hide broken hero images gracefully
                 (e.target as HTMLImageElement).style.display = "none";
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
           </>
         )}
-        <div className="relative z-10 px-6 pb-12 w-full">
-          <p className="text-secondary font-bold tracking-[0.3em] uppercase text-xs mb-4">
+        <div className="relative z-10 px-5 sm:px-6 pb-8 sm:pb-12 w-full">
+          <p className="text-secondary font-bold tracking-[0.25em] uppercase text-[10px] sm:text-xs mb-2 sm:mb-4">
             {wineCountry.nameJa}
           </p>
-          <h2 className="font-headline font-black text-5xl text-primary leading-tight tracking-tighter">
+          <h2 className="font-headline font-black text-3xl sm:text-5xl text-primary leading-tight tracking-tight">
             {wineRegion.nameJa}
           </h2>
-          <p className="font-headline text-2xl font-light italic text-primary/70 mt-1">
+          <p className="font-headline text-sm sm:text-2xl font-light italic text-primary/70 mt-1">
             {regionName}, {wineCountry.name}
           </p>
         </div>
@@ -286,39 +285,35 @@ export default function RegionPage({ params }: Props) {
 
       {/* Editorial Intro */}
       {content && (
-        <section className="px-6 py-12 grid grid-cols-12 gap-8">
-          <div className="col-span-8">
-            <p className="font-headline text-xl text-on-surface leading-relaxed">
-              {content.description}
-            </p>
-          </div>
-          <div className="col-span-4 border-l border-outline-variant/30 pl-6 flex flex-col justify-end">
-            {content.keyGrapes.length > 0 && (
-              <>
-                <div className="text-secondary font-bold text-2xl mb-1">
-                  {content.keyGrapes.length}
-                </div>
-                <div className="text-on-surface-variant text-xs tracking-widest uppercase">
-                  Key Grapes
-                </div>
-              </>
-            )}
-          </div>
+        <section className="px-5 sm:px-6 py-8 sm:py-12">
+          <p className="font-headline text-base sm:text-xl text-on-surface leading-[1.9] tracking-[0.02em]">
+            {content.description}
+          </p>
+          {content.keyGrapes.length > 0 && (
+            <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-outline-variant/30 flex items-baseline gap-3">
+              <span className="text-secondary font-bold text-2xl sm:text-3xl">
+                {content.keyGrapes.length}
+              </span>
+              <span className="text-on-surface-variant text-[10px] sm:text-xs tracking-[0.2em] uppercase">
+                Key Grapes
+              </span>
+            </div>
+          )}
         </section>
       )}
 
       {/* Key Grapes */}
       {content && content.keyGrapes.length > 0 && (
-        <section className="px-6 mb-8">
-          <div className="flex flex-wrap gap-2">
+        <section className="px-5 sm:px-6 mb-6 sm:mb-8">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {content.keyGrapes.map((g) => (
               <Link
                 key={g}
                 href={`/grapes?q=${encodeURIComponent(g)}`}
-                className="px-4 py-1.5 bg-surface-container-lowest rounded-full text-xs font-medium text-primary shadow-sm hover:bg-primary/10 transition-colors flex items-center gap-1"
+                className="px-3 sm:px-4 py-1.5 bg-surface-container-lowest rounded-full text-[11px] sm:text-xs font-medium text-primary shadow-sm hover:bg-primary/10 transition-colors flex items-center gap-1"
               >
                 {g}
-                <span className="material-symbols-outlined text-[14px] text-primary/40">arrow_forward</span>
+                <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary/40">arrow_forward</span>
               </Link>
             ))}
           </div>
@@ -327,14 +322,14 @@ export default function RegionPage({ params }: Props) {
 
       {/* Region Guide Grid */}
       {content && (
-        <section className="px-6 py-8">
-          <div className="flex items-baseline justify-between mb-8">
-            <h3 className="font-headline text-2xl text-primary">
+        <section className="px-5 sm:px-6 py-6 sm:py-8">
+          <div className="flex items-baseline justify-between mb-5 sm:mb-8">
+            <h3 className="font-headline text-lg sm:text-2xl text-primary tracking-tight">
               Region Guide
             </h3>
-            <span className="h-[1px] flex-grow mx-6 bg-outline-variant/30" />
+            <span className="h-[1px] flex-grow ml-4 sm:ml-6 bg-outline-variant/30" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
             {GUIDE_SECTIONS.map(({ key, icon, label }) => {
               const text = content[key as keyof typeof content];
               if (!text || typeof text !== "string") return null;
@@ -344,22 +339,27 @@ export default function RegionPage({ params }: Props) {
                 <div
                   key={key}
                   className={`${
-                    isExpanded ? "col-span-2" : ""
-                  } bg-surface-container-low p-4 flex flex-col justify-between group cursor-pointer transition-all duration-500 hover:bg-surface-container-highest rounded-xl`}
+                    isExpanded ? "sm:col-span-2" : ""
+                  } bg-surface-container-low/60 border border-outline-variant/20 p-4 sm:p-5 group cursor-pointer transition-all duration-300 hover:bg-surface-container hover:border-primary/30 rounded-2xl`}
                   onClick={() =>
                     setExpandedSection(isExpanded ? null : key)
                   }
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-primary text-2xl">
-                      {icon}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="material-symbols-outlined text-primary text-xl sm:text-2xl shrink-0">
+                        {icon}
+                      </span>
+                      <h4 className="font-headline text-sm sm:text-base group-hover:text-primary transition-colors truncate">
+                        {label}
+                      </h4>
+                    </div>
+                    <span className="material-symbols-outlined text-on-surface-variant/60 text-base shrink-0">
+                      {isExpanded ? "expand_less" : "expand_more"}
                     </span>
-                    <h4 className="font-headline text-base group-hover:text-primary transition-colors">
-                      {label}
-                    </h4>
                   </div>
                   {isExpanded && (
-                    <p className="mt-4 text-sm text-on-surface-variant leading-relaxed">
+                    <p className="mt-4 pt-4 border-t border-outline-variant/30 text-[13px] sm:text-sm text-on-surface-variant leading-[1.8] tracking-[0.02em] whitespace-pre-line">
                       {text}
                     </p>
                   )}
@@ -372,12 +372,12 @@ export default function RegionPage({ params }: Props) {
 
       {/* Tour & Travel Section */}
       {tours.length > 0 && (
-        <section className="px-6 py-8">
-          <div className="flex items-baseline justify-between mb-6">
-            <h3 className="font-headline text-2xl text-primary">
+        <section className="px-5 sm:px-6 py-6 sm:py-8">
+          <div className="flex items-baseline justify-between mb-5 sm:mb-6">
+            <h3 className="font-headline text-lg sm:text-2xl text-primary tracking-tight">
               ツアー・体験
             </h3>
-            <span className="h-[1px] flex-grow mx-6 bg-outline-variant/30" />
+            <span className="h-[1px] flex-grow ml-4 sm:ml-6 bg-outline-variant/30" />
           </div>
           <div className="space-y-3">
             {tours.map((tour, i) => (
@@ -459,13 +459,13 @@ export default function RegionPage({ params }: Props) {
 
       {/* Travel Tips */}
       {travelTips && (
-        <section className="px-6 py-4">
-          <div className="bg-surface-container-low rounded-2xl p-5">
+        <section className="px-5 sm:px-6 py-3 sm:py-4">
+          <div className="bg-surface-container-low/60 border border-outline-variant/20 rounded-2xl p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
-              <span className="material-symbols-outlined text-primary text-xl">flight</span>
+              <span className="material-symbols-outlined text-primary text-lg sm:text-xl">flight</span>
               <h4 className="font-headline text-sm font-bold text-on-surface">旅行アドバイス</h4>
             </div>
-            <p className="font-body text-xs text-on-surface-variant leading-relaxed">
+            <p className="font-body text-xs sm:text-[13px] text-on-surface-variant leading-[1.8]">
               {travelTips}
             </p>
           </div>
@@ -474,17 +474,17 @@ export default function RegionPage({ params }: Props) {
 
       {/* Nearby Attractions */}
       {nearbyAttractions.length > 0 && (
-        <section className="px-6 py-4">
-          <div className="bg-surface-container-low rounded-2xl p-5">
+        <section className="px-5 sm:px-6 py-3 sm:py-4">
+          <div className="bg-surface-container-low/60 border border-outline-variant/20 rounded-2xl p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
-              <span className="material-symbols-outlined text-primary text-xl">explore</span>
+              <span className="material-symbols-outlined text-primary text-lg sm:text-xl">explore</span>
               <h4 className="font-headline text-sm font-bold text-on-surface">周辺の観光スポット</h4>
             </div>
             <div className="space-y-2">
               {nearbyAttractions.map((a, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="material-symbols-outlined text-[14px] text-secondary mt-0.5">place</span>
-                  <span className="font-body text-xs text-on-surface-variant">
+                  <span className="font-body text-xs sm:text-[13px] text-on-surface-variant leading-[1.7]">
                     {typeof a === "string" ? a : `${a.name}${a.description ? ` — ${a.description}` : ""}`}
                   </span>
                 </div>
@@ -496,20 +496,23 @@ export default function RegionPage({ params }: Props) {
 
       {/* Sub-regions */}
       {wineRegion.subRegions.length > 0 && (
-        <section className="px-6 py-8">
-          <h3 className="font-headline text-xl text-primary mb-4">
-            サブ地域
-          </h3>
-          <div className="flex flex-wrap gap-2">
+        <section className="px-5 sm:px-6 py-6 sm:py-8">
+          <div className="flex items-baseline justify-between mb-4 sm:mb-5">
+            <h3 className="font-headline text-lg sm:text-xl text-primary tracking-tight">
+              サブ地域
+            </h3>
+            <span className="h-[1px] flex-grow ml-4 sm:ml-6 bg-outline-variant/30" />
+          </div>
+          <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
             {wineRegion.subRegions.map((sr) => (
               <Link
                 key={sr.name}
                 href={`/map/region/${countryCode}/${encodeURIComponent(regionName)}/${encodeURIComponent(sr.name)}`}
-                className="px-4 py-2 text-xs bg-surface-container-low text-on-surface-variant rounded-xl hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-2"
+                className="px-4 py-3 sm:py-2 text-xs bg-surface-container-low/60 border border-outline-variant/20 text-on-surface-variant rounded-xl hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-                {sr.nameJa}
-                <span className="text-on-surface-variant/40 ml-1">{sr.name}</span>
+                <span className="font-medium">{sr.nameJa}</span>
+                <span className="text-on-surface-variant/40 truncate">{sr.name}</span>
+                <span className="material-symbols-outlined text-sm ml-auto text-on-surface-variant/40">chevron_right</span>
               </Link>
             ))}
           </div>
@@ -517,16 +520,16 @@ export default function RegionPage({ params }: Props) {
       )}
 
       {/* Local Wines Section */}
-      <section className="py-12 bg-surface-container-low">
-        <div className="px-6 mb-8">
-          <h3 className="font-headline text-2xl text-primary">
+      <section className="py-10 sm:py-12 mt-4 bg-surface-container-low/40">
+        <div className="px-5 sm:px-6 mb-6 sm:mb-8">
+          <h3 className="font-headline text-lg sm:text-2xl text-primary tracking-tight">
             Recorded in {regionName}
           </h3>
-          <p className="text-on-surface-variant mt-2 text-sm">
+          <p className="text-on-surface-variant mt-1 sm:mt-2 text-xs sm:text-sm">
             この地域で記録された{wines.length}本のワイン
           </p>
         </div>
-        <div className="px-6">
+        <div className="px-5 sm:px-6">
           <WineListMini
             wines={wines}
             emptyMessage="この地域のワインはまだ記録されていません"
@@ -536,17 +539,17 @@ export default function RegionPage({ params }: Props) {
 
       {/* Fun fact quote */}
       {content?.funFact && (
-        <section className="px-6 py-16 flex flex-col items-center text-center">
+        <section className="px-5 sm:px-6 py-10 sm:py-16 flex flex-col items-center text-center">
           <span
-            className="material-symbols-outlined text-secondary text-4xl mb-6"
+            className="material-symbols-outlined text-secondary text-3xl sm:text-4xl mb-4 sm:mb-6"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
             format_quote
           </span>
-          <p className="font-headline text-xl text-primary max-w-md leading-relaxed italic">
+          <p className="font-headline text-base sm:text-xl text-primary max-w-md leading-[1.8] italic">
             {content.funFact}
           </p>
-          <div className="mt-8 h-1 w-16 bg-secondary" />
+          <div className="mt-6 sm:mt-8 h-[2px] w-12 sm:w-16 bg-secondary" />
         </section>
       )}
     </div>

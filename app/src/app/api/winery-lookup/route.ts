@@ -44,16 +44,27 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { producer, country, region, subRegion, village, grapeVarieties } = body;
+  const {
+    producer,
+    wineName,
+    vintage,
+    appellation,
+    country,
+    region,
+    subRegion,
+    village,
+    grapeVarieties,
+  } = body;
 
-  if (!producer) {
+  if (!producer && !wineName) {
     return NextResponse.json(
-      { error: "producer is required" },
+      { error: "producer or wineName is required" },
       { status: 400 }
     );
   }
 
-  const lookupKey = buildWineryLookupKey(producer);
+  // Use producer if available, otherwise use wine name as the lookup key seed
+  const lookupKey = buildWineryLookupKey(producer || wineName);
 
   // Cache-first: check Supabase
   let cached: Record<string, unknown> | null = null;
@@ -77,6 +88,7 @@ export async function POST(req: NextRequest) {
   const locationParts = [village, subRegion, region, country].filter(Boolean);
   const locationStr = locationParts.length > 0 ? locationParts.join(", ") : "";
   const grapeStr = grapeVarieties?.length > 0 ? grapeVarieties.join(", ") : "";
+  const wineFullName = [producer, wineName, vintage].filter(Boolean).join(" ");
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -93,12 +105,25 @@ export async function POST(req: NextRequest) {
           {
             role: "user",
             content: `あなたはワインのソムリエであり、世界中のワイナリーに精通した旅行ガイドの専門家です。
-以下のワイン生産者（ワイナリー）について、詳細な情報を調べて日本語で教えてください。
+以下の「ワイン情報」から、そのワインを実際に造っている生産者（ワイナリー）を特定し、
+詳細な情報を日本語で教えてください。
 ユーザーが「実際に行ってみたい」と思うような魅力的で具体的な情報をお願いします。
 
-生産者名: ${producer}
+【ワイン情報】
+${wineFullName ? `ワイン名: ${wineFullName}` : ""}
+${producer ? `ラベル上の生産者表記: ${producer}` : ""}
+${wineName ? `ワインのキュヴェ名/銘柄: ${wineName}` : ""}
+${vintage ? `ヴィンテージ: ${vintage}` : ""}
+${appellation ? `アペラシオン/呼称: ${appellation}` : ""}
 ${locationStr ? `所在地ヒント: ${locationStr}` : ""}
 ${grapeStr ? `主要品種: ${grapeStr}` : ""}
+
+【重要】
+- ラベル上の生産者表記は不正確/略称/別名の場合があります。ワイン名・キュヴェ名・アペラシオン・産地・品種を総合的に手がかりにして、最も可能性が高い実際のワイナリーを特定してください
+- 例: 「Sassicaia 2019」と書かれていれば Tenuta San Guido を返してください
+- 例: 「Petrus」のラベルでも生産者は Château Petrus（Jean-François Moueix）です
+- 例: 共同醸造所/ネゴシアン名がラベルにあっても、固有のキュヴェ名がある場合はそのキュヴェの実際の造り手を返してください
+- どうしても特定できない場合のみ、ラベル表記の生産者名をそのまま使ってください
 
 【ファクトチェック・URL規則 — 厳守】
 - URLやリンクを推測・捏造してはいけません。このリクエストではWeb検索機能がないため、URLの正確性を確認できません

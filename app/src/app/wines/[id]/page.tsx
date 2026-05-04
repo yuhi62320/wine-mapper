@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { WineLog, Winery, WINE_TYPE_LABELS, WINE_TYPE_COLORS, PalateLevel } from "@/lib/types";
-import { getWines, getWineries, getWineryByName, addWinery, linkWineToWinery } from "@/lib/store";
+import { getWines, getWineries, getWineryByName, addWinery, linkWineToWinery, findWineryMatch, WineryMatch } from "@/lib/store";
 import { WINE_COUNTRIES } from "@/lib/countries";
 import { getWinePhoto } from "@/lib/photo-store";
 import { getDefaultPalate } from "@/lib/wine-defaults";
@@ -28,6 +28,7 @@ export default function WineDetailPage() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [wineryLoading, setWineryLoading] = useState(false);
   const [linkedWinery, setLinkedWinery] = useState<Winery | null>(null);
+  const [suggestedMatch, setSuggestedMatch] = useState<WineryMatch | null>(null);
 
   useEffect(() => {
     const wines = getWines();
@@ -43,22 +44,38 @@ export default function WineDetailPage() {
       if (wine.wineryId) {
         const winery = getWineries().find((w) => w.id === wine.wineryId);
         if (winery) setLinkedWinery(winery);
+      } else if (wine.producer) {
+        // Check for matching winery with confidence
+        const match = findWineryMatch(wine.producer);
+        if (match) {
+          if (match.confidence === "exact") {
+            // Auto-link for exact matches
+            linkWineToWinery(wine.id, match.winery.id, wine.producer);
+            setLinkedWinery(match.winery);
+          } else {
+            // Normalized or fuzzy — ask user to confirm
+            setSuggestedMatch(match);
+          }
+        }
       }
     }
   }, [wine]);
 
-  async function handleRegisterWinery() {
-    if (!wine?.producer) return;
-
-    // Check if winery already exists locally
-    const existing = getWineryByName(wine.producer);
-    if (existing) {
-      linkWineToWinery(wine.id, existing.id);
-      setLinkedWinery(existing);
-      setWine({ ...wine, wineryId: existing.id });
-      return;
+  function handleConfirmMatch(confirmed: boolean) {
+    if (!wine || !suggestedMatch) return;
+    if (confirmed) {
+      linkWineToWinery(wine.id, suggestedMatch.winery.id, wine.producer);
+      setLinkedWinery(suggestedMatch.winery);
+      setSuggestedMatch(null);
+    } else {
+      // Declined — immediately register as a new winery
+      setSuggestedMatch(null);
+      handleCreateNewWinery();
     }
+  }
 
+  async function handleCreateNewWinery() {
+    if (!wine?.producer) return;
     setWineryLoading(true);
     try {
       const res = await fetch("/api/winery-lookup", {
@@ -66,6 +83,9 @@ export default function WineDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           producer: wine.producer,
+          wineName: wine.name,
+          vintage: wine.vintage,
+          appellation: wine.appellation,
           country: wine.country,
           region: wine.region,
           subRegion: wine.subRegion,
@@ -92,11 +112,12 @@ export default function WineDetailPage() {
         guideData: data.guideData || data.guide_data || null,
         tourData: data.tourData || data.tour_data || null,
         wineIds: [wine.id],
+        producerNames: [wine.producer],
         createdAt: new Date().toISOString(),
       };
 
       addWinery(winery);
-      linkWineToWinery(wine.id, winery.id);
+      linkWineToWinery(wine.id, winery.id, wine.producer);
       setLinkedWinery(winery);
       setWine({ ...wine, wineryId: winery.id });
     } catch (err) {
@@ -104,6 +125,26 @@ export default function WineDetailPage() {
     } finally {
       setWineryLoading(false);
     }
+  }
+
+  async function handleRegisterWinery() {
+    if (!wine?.producer) return;
+
+    // Check for matching winery first
+    const match = findWineryMatch(wine.producer);
+    if (match) {
+      if (match.confidence === "exact" || match.confidence === "normalized") {
+        linkWineToWinery(wine.id, match.winery.id, wine.producer);
+        setLinkedWinery(match.winery);
+        return;
+      } else {
+        setSuggestedMatch(match);
+        return;
+      }
+    }
+
+    // No match at all — create new
+    handleCreateNewWinery();
   }
 
   if (!wine) {
@@ -546,6 +587,45 @@ export default function WineDetailPage() {
                 </div>
                 <span className="material-symbols-outlined text-[20px] text-[#534343]/40 group-hover:text-[#722f37] transition-colors">chevron_right</span>
               </Link>
+            ) : suggestedMatch ? (
+              /* ===== Confirmation UI for ambiguous winery match ===== */
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-[#fed977]/15 rounded-xl border border-[#fed977]/40">
+                  <span className="material-symbols-outlined text-[20px] text-[#755b00]">help</span>
+                  <p className="font-body text-xs text-[#534343] leading-relaxed">
+                    <span className="font-bold text-[#1c1c18]">{wine.producer}</span> は以下のワイナリーと同じですか？
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 p-3 bg-[#f6f3ed] rounded-xl">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#561922] to-[#722f37] flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-[22px] text-white/80">castle</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-headline text-sm font-bold text-[#1c1c18] truncate">
+                      {suggestedMatch.winery.nameJa || suggestedMatch.winery.name}
+                    </p>
+                    <p className="font-body text-[11px] text-[#534343] mt-0.5">
+                      {[suggestedMatch.winery.region, suggestedMatch.winery.country].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleConfirmMatch(true)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#561922] text-white text-xs font-label font-bold tracking-wider hover:bg-[#722f37] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">check</span>
+                    同じワイナリー
+                  </button>
+                  <button
+                    onClick={() => handleConfirmMatch(false)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white text-[#534343] text-xs font-label font-bold tracking-wider border border-[#d8c1c2]/60 hover:bg-[#f6f3ed] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">close</span>
+                    違うワイナリー
+                  </button>
+                </div>
+              </div>
             ) : (
               <button
                 onClick={handleRegisterWinery}
